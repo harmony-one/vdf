@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
-	"fmt"
 	"math"
 	"math/big"
 )
@@ -19,19 +18,7 @@ var	m = 8 * 3 * 5 * 7 * 11 * 13
 var residues = make([]int, 0, m)
 var sieve_info = make([]Pair, 0, len(odd_primes))
 
-func ModExp(base, exponent, modulus int64) int64 {
-	if modulus == 1 {
-		return 0
-	}
-	base = base % modulus
-	result := int64(1)
-	for i := int64(0); i < exponent; i++ {
-		result = (result * base) % modulus
-	}
-	return result
-}
-
-func initializeGlobalVariables() {
+func init() {
 	for x := 7; x < m; x += 8 {
 		if (x % 3 != 0) && (x % 5 !=0) && (x % 7 !=0) && (x % 11 !=0) && (x % 13 != 0) {
 			residues = append(residues, x)
@@ -42,13 +29,26 @@ func initializeGlobalVariables() {
 
 	for i := 0; i < len(odd_primes_above_13); i++ {
 		prime := int64(odd_primes_above_13[i])
-  		sieve_info = append(sieve_info, Pair{p:int64(prime), q:ModExp(int64(m) % prime, prime - 2, prime )})
+  		sieve_info = append(sieve_info, Pair{p:int64(prime), q:modExp(int64(m) % prime, prime - 2, prime )})
 	}
 
+	/*
 	for i :=0 ; i< 10; i++ {
 		fmt.Printf("p = %d, q = %d \n" , sieve_info[i].p , sieve_info[i].q )
 	}
+	*/
+}
 
+func modExp(base, exponent, modulus int64) int64 {
+	if modulus == 1 {
+		return 0
+	}
+	base = base % modulus
+	result := int64(1)
+	for i := int64(0); i < exponent; i++ {
+		result = (result * base) % modulus
+	}
+	return result
 }
 
 func entropyFromSeed(seed []byte, byte_count int) []byte {
@@ -68,10 +68,37 @@ func entropyFromSeed(seed []byte, byte_count int) []byte {
 	return buffer.Bytes()[:byte_count]
 }
 
+//Creates L and k parameters from papers, based on how many iterations need to be
+//performed, and how much memory should be used.
+func approximateParameters(T int) (int, int, int) {
+	//log_memory = math.log(10000000, 2)
+	log_memory := math.Log(10000000) / math.Log(2)
+	log_T := math.Log(float64(T)) / math.Log(2)
+	L := 1
+
+	if (log_T - log_memory > 0){
+		L = int(math.Ceil(math.Pow(2, log_memory - 20)))
+	}
+
+	// Total time for proof: T/k + L * 2^(k+1)
+	// To optimize, set left equal to right, and solve for k
+	// k = W(T * log(2) / (2 * L))  / log(2), where W is the product log function
+	// W can be approximated by log(x) - log(log(x)) + 0.25
+	intermediate := float64(T) * math.Log(2) / float64(2 * L)
+	k := int(math.Max(math.Round(math.Log(intermediate) - math.Log(math.Log(intermediate)) + 0.25), 1))
+
+	// 1/w is the approximate proportion of time spent on the proof
+	w := int(math.Floor(float64(T) / (float64(T)/float64(k) + float64(L) * math.Pow(2, float64(k + 1)))) - 2)
+
+	return L, k,  w
+}
+
+
+
 //Return a discriminant of the given length using the given seed
 //Generate a probable prime p where p % 8 == 7.
 //Return -p.
-func createDiscriminant(seed []byte, length int) *big.Int {
+func CreateDiscriminant(seed []byte, length int) *big.Int {
 	extra := uint8(length) & 7
 	byte_count := ((length + 7) >> 3) + 2
 	entropy := entropyFromSeed(seed, byte_count)
@@ -114,48 +141,4 @@ func createDiscriminant(seed []byte, length int) *big.Int {
 		n = new(big.Int).Add(n, bigM.Mul(bigM, big.NewInt(int64(1<<16))))
 
 	}
-}
-
-//Creates L and k parameters from papers, based on how many iterations need to be
-//performed, and how much memory should be used.
-func approximateParameters(T int) (int, int, int) {
-	//log_memory = math.log(10000000, 2)
-	log_memory := math.Log(10000000) / math.Log(2)
-	log_T := math.Log(float64(T)) / math.Log(2)
-	L := 1
-
-	if (log_T - log_memory > 0){
-		L = int(math.Ceil(math.Pow(2, log_memory - 20)))
-	}
-
-	// Total time for proof: T/k + L * 2^(k+1)
-	// To optimize, set left equal to right, and solve for k
-	// k = W(T * log(2) / (2 * L))  / log(2), where W is the product log function
-	// W can be approximated by log(x) - log(log(x)) + 0.25
-	intermediate := float64(T) * math.Log(2) / float64(2 * L)
-	k := int(math.Max(math.Round(math.Log(intermediate) - math.Log(math.Log(intermediate)) + 0.25), 1))
-
-	// 1/w is the approximate proportion of time spent on the proof
-	w := int(math.Floor(float64(T) / (float64(T)/float64(k) + float64(L) * math.Pow(2, float64(k + 1)))) - 2)
-
-	return L, k,  w
-}
-
-
-func testDiscriminant() {
-
-	//L, k, _ := approximateParameters(20000000)
-	initializeGlobalVariables()
-
-	seed := []byte{0xab,0xcd}
-	/*
-	bytes := entropy_from_seed(seed, 258)
-	for i := 0; i< len(bytes); i++ {
-		fmt.Printf("%x,", bytes[i])
-	}
-	fmt.Print("\n")
-	*/
-	n := createDiscriminant(seed, 2048)
-	fmt.Println(n)
-
 }

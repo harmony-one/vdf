@@ -10,7 +10,7 @@ import (
 )
 
 
-func TestDiscriminant(t *testing.T) {
+func TestClassDiscriminant(t *testing.T) {
 	t12_11_3 := vdf_go.NewClassGroup(big.NewInt(12), big.NewInt(11), big.NewInt(3))
 	assert.Equal(t, "-23", t12_11_3.Discriminant().String(), "they should be equal")
 
@@ -103,6 +103,30 @@ func TestMultiplication4(t *testing.T) {
 	assert.Equal(t, a, vdf_go.NewClassGroup(big.NewInt(-1), big.NewInt(0), big.NewInt(2538270247313468068)), "they should be equal")
 }
 
+
+func TestSquare1(t *testing.T) {
+	x := vdf_go.NewClassGroup(big.NewInt(12), big.NewInt(11), big.NewInt(3))
+	y := x.Square()
+	assert.Equal(t, y, vdf_go.NewClassGroup(big.NewInt(2), big.NewInt(1), big.NewInt(3)), "they should be equal")
+}
+
+func TestSquare2(t *testing.T) {
+	x := vdf_go.NewClassGroup(big.NewInt(93), big.NewInt(109), big.NewInt(32))
+	y := x.Square()
+	assert.Equal(t, y, vdf_go.NewClassGroup(big.NewInt(2), big.NewInt(-1), big.NewInt(3)), "they should be equal")
+}
+
+func TestSquare3(t *testing.T) {
+	x := vdf_go.NewClassGroup(big.NewInt(565721958), big.NewInt( -740), big.NewInt(4486780496))
+	y := x.Square()
+	assert.Equal(t, y, vdf_go.NewClassGroup(big.NewInt(81125853), big.NewInt(2339300), big.NewInt(31288073056)), "they should be equal")
+}
+
+func TestSerialize(t *testing.T) {
+	x := vdf_go.NewClassGroup(big.NewInt(-565721958), big.NewInt( -740), big.NewInt(4486780496))
+	s := fmt.Sprintf("%02x", x.Serialize())
+	assert.Equal(t, s, "ffde47c49afffffffd1c", "they should be equal")
+}
 
 func main() {
 	//vdf_go.NewClassGroup(big.NewInt(1), big.NewInt(1),big.NewInt(1))

@@ -33,7 +33,6 @@ func IdentityForDiscriminant(d *big.Int) *ClassGroup {
 	return NewClassGroupFromAbDiscriminant(big.NewInt(1), big.NewInt(1), d)
 }
 
-
 func (group *ClassGroup) Normalized() *ClassGroup {
 	a := new(big.Int).Set(group.a);
 	b := new(big.Int).Set(group.b);
@@ -160,6 +159,18 @@ func (group *ClassGroup) Multiply(other *ClassGroup) *ClassGroup {
 	u := floorDivision(g, w)
 
 
+	/*
+		solve these equations for k, l, m
+
+		k * t - l * s = h
+		k * u - m * s = c2
+		l * u - m * t = c1
+
+		solve
+		(tu)k - (hu + sc) = 0 mod st
+		k = (- hu - sc) * (tu)^-1
+	*/
+
 	//k_temp, constant_factor = mod.solve_mod(t * u, h * u + s * c1, s * t)
 	b := new(big.Int).Mul(h, u)
 	sc:= new(big.Int).Mul(s, x.c)
@@ -209,4 +220,120 @@ func (group *ClassGroup) Multiply(other *ClassGroup) *ClassGroup {
 	c3 := kl.Sub(kl, jm)
 
 	return NewClassGroup(a3, b3, c3).Reduced()
+}
+
+
+func (group *ClassGroup) Square() *ClassGroup {
+	//a1, b1, c1 = self.reduced()
+	x := group.Reduced()
+
+	//g = b1
+	g := x.b
+	//h = 0
+	h := big.NewInt(0)
+
+	//w = mod.gcd(a1, g)
+	w  := allInputValueGCD(x.a, g)
+
+	//j = w
+	j := new(big.Int).Set(w)
+	//r = 0
+	r := big.NewInt(0)
+	//s = a1 // w
+	s := floorDivision(x.a, w)
+	//t = s
+	t := s
+	//u = g // w
+	u := floorDivision(g, w)
+
+
+	/*
+	solve these equations for k, l, m
+
+	k * t - l * s = h
+	k * u - m * s = c2
+	l * u - m * t = c1
+
+	solve
+	(tu)k - (hu + sc) = 0 mod st
+	k = (- hu - sc) * (tu)^-1
+	*/
+
+	//k_temp, constant_factor = mod.solve_mod(t * u, h * u + s * c1, s * t)
+	b := new(big.Int).Mul(h, u)
+	sc:= new(big.Int).Mul(s, x.c)
+	b.Add(b, sc)
+	k_temp, constant_factor := SolveMod(new(big.Int).Mul(t, u), b, new(big.Int).Mul(s, t))
+
+	//n, constant_factor_2 = mod.solve_mod(t * constant_factor, h - t * k_temp, s)
+	n, _ := SolveMod(new(big.Int).Mul(t, constant_factor), new(big.Int).Sub(h, new(big.Int).Mul(t, k_temp)), s)
+
+	//k = k_temp + constant_factor * n
+	k := new(big.Int).Add(k_temp, new(big.Int).Mul(constant_factor, n))
+
+	//l = (t * k - h) // s
+	l := floorDivision(new(big.Int).Sub(new(big.Int).Mul(t, k), h), s)
+
+	//m = (t * u * k - h * u - s * c1) // (s * t)
+	tuk := new(big.Int).Mul(t, u)
+	tuk.Mul(tuk, k)
+
+	hu := new(big.Int).Mul(h, u)
+
+	tuk.Sub(tuk, hu)
+	tuk.Sub(tuk, sc)
+
+	st := new(big.Int).Mul(s, t)
+	m  := floorDivision(tuk, st)
+
+	//a3 = s * t - r * u
+	ru := new(big.Int).Mul(r, u)
+	a3 := st.Sub(st, ru)
+
+	//b3 = (j * u + m * r) - (k * t + l * s)
+	ju := new(big.Int).Mul(j, u)
+	mr := new(big.Int).Mul(m, r)
+	ju  = ju.Add(ju, mr)
+
+	kt := new(big.Int).Mul(k, t)
+	ls := new(big.Int).Mul(l, s)
+	kt  = kt.Add(kt, ls)
+
+	b3 := ju.Sub(ju, kt)
+
+	//c3 = k * l - j * m
+	kl := new(big.Int).Mul(k, l)
+	jm := new(big.Int).Mul(j, m)
+
+	c3 := kl.Sub(kl, jm)
+
+	return NewClassGroup(a3, b3, c3).Reduced()
+}
+
+
+//encoding using two's complement for a, b
+func (group *ClassGroup) Serialize() []byte {
+	r := group.Reduced()
+	int_size_bits := group.Discriminant().BitLen()
+	int_size := (int_size_bits + 16) >> 4
+
+	buf := make([]byte, int_size)
+	a_bytes :=  r.a.Bytes()
+	copy(buf[int_size - len(a_bytes): ], a_bytes)
+
+	//encode the negative number
+	if r.a.Sign() == -1 {
+		two_s_complement_encoding(buf, len(a_bytes))
+	}
+
+	buf2 := make([]byte, int_size)
+	b_bytes :=  r.b.Bytes()
+	copy(buf2[int_size - len(b_bytes): ], b_bytes)
+
+	//encode the negative number
+	if r.b.Sign() == -1 {
+		two_s_complement_encoding(buf2, len(b_bytes))
+	}
+
+	return append(buf, buf2...)
 }
