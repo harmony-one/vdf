@@ -218,12 +218,11 @@ func (group *ClassGroup) Multiply(other *ClassGroup) *ClassGroup {
 	jm := new(big.Int).Mul(j, m)
 
 	c3 := kl.Sub(kl, jm)
-
 	return NewClassGroup(a3, b3, c3).Reduced()
 }
 
 
-func (group *ClassGroup) Pow(n int) *ClassGroup {
+func (group *ClassGroup) Pow(n int64) *ClassGroup {
 	x := CloneClassGroup(group)
 	items_prod := group.identity()
 	for n > 0 {

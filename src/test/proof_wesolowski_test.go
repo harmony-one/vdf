@@ -7,7 +7,7 @@ import (
 )
 
 func Test1(t *testing.T) {
-	seed := []byte{0xab,0xcd}
+	seed := []byte{0xde, 0xad, 0xbe, 0xef}
 	D := vdf_go.CreateDiscriminant(seed, 2048)
 
 	X := vdf_go.NewClassGroupFromAbDiscriminant(big.NewInt(2), big.NewInt(1), D)
