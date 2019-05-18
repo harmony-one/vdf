@@ -30,12 +30,6 @@ func init() {
 		prime := int64(odd_primes_above_13[i])
   		sieve_info = append(sieve_info, Pair{p:int64(prime), q:modExp(int64(m) % prime, prime - 2, prime )})
 	}
-
-	/*
-	for i :=0 ; i< 10; i++ {
-		fmt.Printf("p = %d, q = %d \n" , sieve_info[i].p , sieve_info[i].q )
-	}
-	*/
 }
 
 func modExp(base, exponent, modulus int64) int64 {

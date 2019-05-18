@@ -113,21 +113,6 @@ func (group *ClassGroup) Discriminant() *big.Int {
 	return group.d
 }
 
-func (group *ClassGroup) serialize() []byte {
-	r := group.Reduced()
-
-	//int_size_bits = int(self.discriminant().bit_length())
-	int_size_bits := r.Discriminant().BitLen()
-
-	int_size := (int_size_bits + 16) >> 4
-
-	//return b''.join([x.to_bytes(int_size, "big", signed=True) for x in [r[0], r[1]]])
-	return make([]byte, int_size)
-}
-
-
-
-
 func (group *ClassGroup) Multiply(other *ClassGroup) *ClassGroup {
 	//a1, b1, c1 = self.reduced()
 	x := group.Reduced()

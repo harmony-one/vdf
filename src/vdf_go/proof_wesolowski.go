@@ -3,7 +3,6 @@ package vdf_go
 import (
 	"crypto/sha256"
 	"encoding/binary"
-	"fmt"
 	"math"
 	"math/big"
 )
@@ -42,24 +41,17 @@ func iterateSquarings(x *ClassGroup, powers_to_calculate []int) map[int]*ClassGr
 
 		for i:=0; i < current_power - previous_power; i++ {
 			currX = currX.Pow(2)
-			s := fmt.Sprintf("%02x", EncodeBigIntAbs(currX.c, 256))
-			fmt.Print(s)
 		}
 
 		previous_power = current_power
 		powers_calculated[current_power] = currX
-
-		//s := fmt.Sprintf("%02x", EncodeBigIntBigEndian(currX.c))
-		//fmt.Print(s)
-
-		//currX = CloneClassGroup(currX)
 	}
 
 
 	return powers_calculated
 }
 
-func Create_proof_of_time_wesolowski(discriminant *big.Int, x *ClassGroup, iterations, int_size_bits int) map[int]*ClassGroup {
+func Create_proof_of_time_wesolowski(discriminant *big.Int, x *ClassGroup, iterations, int_size_bits int) ([]byte, []byte) {
 	L, k, _ := approximateParameters(iterations)
 
 	loopCount := int(math.Ceil(float64(iterations)/float64(k*L)))
@@ -86,10 +78,9 @@ func Create_proof_of_time_wesolowski(discriminant *big.Int, x *ClassGroup, itera
 
 	identity := IdentityForDiscriminant(discriminant)
 
-	generate_proof(identity, x, y, iterations, k, L, powers)
+	proof := generate_proof(identity, x, y, iterations, k, L, powers)
 
-	return powers
-
+	return y.Serialize(), proof.Serialize()
 }
 
 // Creates a random prime based on input x, y
@@ -107,8 +98,7 @@ func hash_prime(x, y []byte)  *big.Int {
 
 		checkSum := sha256.Sum256(s[:])
 		z.SetBytes(checkSum[:16])
-		aa := fmt.Sprintf("%02x", EncodeBigIntBigEndian(z))
-		fmt.Print(aa)
+
 		if z.ProbablyPrime(1) {
 			return z
 		}
@@ -158,17 +148,7 @@ func eval_optimized(identity, h *ClassGroup, B *big.Int, T, k, l int,  C map[int
 
 			///TODO: carefully check big.Int to int64 value conversion...might cause serious issues later
 			b := get_block(i*l + j, k, T, B).Int64()
-
-			s1 := C[i * k * l].a.String()
-			s2 := C[i * k * l].b.String()
-			s3 := C[i * k * l].c.String()
-			fmt.Print(s1, s2, s3)
-
 			ys[b] = ys[b].Multiply(C[i * k * l])
-
-			s := ys[b].c.String()
-			fmt.Print(s)
-
 		}
 
 		//for b1 in range(0, pow(2, k1)):
@@ -212,20 +192,7 @@ func generate_proof(identity, x, y *ClassGroup, T, k, l int, powers map[int]*Cla
 
 	B := hash_prime(x_s, y_s)
 
-	//s := fmt.Sprintf("%02x", EncodeBigIntBigEndian(B))
-	//fmt.Print(s)
-
 	proof := eval_optimized(identity, x, B, T, k, l, powers)
-
-	s1 := proof.a.String()
-	s2 := proof.b.String()
-	s3 := proof.c.String()
-	fmt.Print(s1, s2, s3)
-
-	ya := y.a.String()
-	yb := y.b.String()
-	yc := y.c.String()
-	fmt.Print(ya,yb,yc)
 
 	return proof
 }
