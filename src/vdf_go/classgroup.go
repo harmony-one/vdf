@@ -223,6 +223,20 @@ func (group *ClassGroup) Multiply(other *ClassGroup) *ClassGroup {
 }
 
 
+func (group *ClassGroup) Pow(n int) *ClassGroup {
+	x := CloneClassGroup(group)
+	items_prod := group.identity()
+	for n > 0 {
+		if n & 1 == 1 {
+			items_prod = items_prod.Multiply(x)
+		}
+		x = x.Square()
+		n >>= 1
+	}
+	return items_prod
+}
+
+
 func (group *ClassGroup) Square() *ClassGroup {
 	//a1, b1, c1 = self.reduced()
 	x := group.Reduced()

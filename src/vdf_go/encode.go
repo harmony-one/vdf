@@ -30,9 +30,10 @@ func two_s_complement_encoding(buf []byte, bytes_size int) []byte {
 	return buf
 }
 
+
 func EncodeBigIntBigEndian(a *big.Int) []byte {
 	int_size_bits := a.BitLen()
-	int_size := (int_size_bits + 16) >> 4
+	int_size := (int_size_bits + 16) >> 3
 
 	buf := make([]byte, int_size)
 	a_bytes :=  a.Bytes()
@@ -43,5 +44,13 @@ func EncodeBigIntBigEndian(a *big.Int) []byte {
 		two_s_complement_encoding(buf, len(a_bytes))
 	}
 
+	return buf
+}
+
+
+func EncodeBigIntAbs(a *big.Int, int_size int) []byte {
+	buf := make([]byte, int_size)
+	a_bytes :=  a.Bytes()
+	copy(buf, a_bytes)
 	return buf
 }
