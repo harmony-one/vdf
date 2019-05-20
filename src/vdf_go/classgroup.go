@@ -29,6 +29,39 @@ func NewClassGroupFromAbDiscriminant(a, b, discriminant *big.Int) *ClassGroup {
 	return NewClassGroup(a, b, c)
 }
 
+
+func NewClassGroupFromBytesDiscriminant(buf []byte, discriminant *big.Int) (*ClassGroup, bool) {
+
+	int_size_bits := discriminant.BitLen()
+
+	//add additional one byte for sign
+	int_size := (int_size_bits + 16) >> 4
+
+	//make sure the input byte buffer size matches with discriminant's
+	if len(buf) != int_size * 2 {
+		return nil, false
+	}
+
+	a := new(big.Int)
+	a.SetBytes(buf[1:int_size])
+
+	//negative number
+	if buf[0] == 1 {
+		a = new(big.Int).Neg(a)
+	}
+
+	b := new(big.Int)
+	b.SetBytes(buf[int_size+1:])
+
+	//negative number
+	if buf[int_size] == 1 {
+		b = new(big.Int).Neg(b)
+	}
+
+	return NewClassGroupFromAbDiscriminant(a, b, discriminant), true
+}
+
+
 func IdentityForDiscriminant(d *big.Int) *ClassGroup {
 	return NewClassGroupFromAbDiscriminant(big.NewInt(1), big.NewInt(1), d)
 }
@@ -221,6 +254,21 @@ func (group *ClassGroup) Pow(n int64) *ClassGroup {
 }
 
 
+func (group *ClassGroup) BigPow(n *big.Int) *ClassGroup {
+	x := CloneClassGroup(group)
+	items_prod := group.identity()
+
+	p :=new(big.Int).Set(n)
+	for p.Sign() > 0 {
+		if p.Bit(0) == 1 {
+			items_prod = items_prod.Multiply(x)
+		}
+		x = x.Square()
+		p.Rsh(p, 1)
+	}
+	return items_prod
+}
+
 func (group *ClassGroup) Square() *ClassGroup {
 	//a1, b1, c1 = self.reduced()
 	x := group.Reduced()
@@ -310,7 +358,7 @@ func (group *ClassGroup) Square() *ClassGroup {
 
 
 //encoding using two's complement for a, b
-func (group *ClassGroup) Serialize() []byte {
+func (group *ClassGroup) Serialize2() []byte {
 	r := group.Reduced()
 	int_size_bits := group.Discriminant().BitLen()
 	int_size := (int_size_bits + 16) >> 4
@@ -334,4 +382,44 @@ func (group *ClassGroup) Serialize() []byte {
 	}
 
 	return append(buf, buf2...)
+}
+
+
+//encoding for a, b based on discriminant's size
+//the first byte is sign, if a < 0, buf[0] = 1 else buf[0] = 0
+func (group *ClassGroup) Serialize() []byte {
+	r := group.Reduced()
+	int_size_bits := group.Discriminant().BitLen()
+
+	//add additional one byte for sign
+	int_size := (int_size_bits + 16) >> 4
+
+	buf := make([]byte, int_size)
+	a_bytes :=  r.a.Bytes()
+	copy(buf[int_size - len(a_bytes): ], a_bytes)
+
+	//encode the negative number
+	if r.a.Sign() == -1 {
+		//two_s_complement_encoding(buf, len(a_bytes))
+		buf[0] = 1
+	}
+
+	buf2 := make([]byte, int_size)
+	b_bytes :=  r.b.Bytes()
+	copy(buf2[int_size - len(b_bytes): ], b_bytes)
+
+	//encode the negative number
+	if r.b.Sign() == -1 {
+		//two_s_complement_encoding(buf2, len(b_bytes))
+		buf[0] = 1
+	}
+
+	return append(buf, buf2...)
+}
+
+func (group *ClassGroup) Equal(other *ClassGroup) bool {
+	g := group.Reduced()
+	o := other.Reduced()
+
+	return (g.a.Cmp(o.a) == 0 && g.b.Cmp(o.b) == 0 && g.c.Cmp(o.c) == 0)
 }

@@ -196,3 +196,24 @@ func generate_proof(identity, x, y *ClassGroup, T, k, l int, powers map[int]*Cla
 
 	return proof
 }
+
+func VerifyProof(x, y, proof *ClassGroup, T int) bool {
+	//x_s = x.serialize()
+	x_s := x.Serialize()
+
+	//y_s = y.serialize()
+	y_s := y.Serialize()
+
+	B := hash_prime(x_s, y_s)
+
+	r := new(big.Int).Exp(big.NewInt(2), big.NewInt(int64(T)), B)
+
+	piB := proof.BigPow(B)
+	xR  := x.BigPow(r)
+
+	if piB.Multiply(xR).Equal(y) {
+		return true
+	} else {
+		return false
+	}
+}
