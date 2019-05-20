@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"math"
 	"math/big"
+	"sort"
 )
 
 //Creates L and k parameters from papers, based on how many iterations need to be
@@ -37,6 +38,7 @@ func iterateSquarings(x *ClassGroup, powers_to_calculate []int) map[int]*ClassGr
 
 	previous_power := 0
 	currX := CloneClassGroup(x)
+	sort.Ints(powers_to_calculate)
 	for _, current_power := range powers_to_calculate {
 
 		for i:=0; i < current_power - previous_power; i++ {
@@ -66,15 +68,6 @@ func Create_proof_of_time_wesolowski(discriminant *big.Int, x *ClassGroup, itera
 	powers := iterateSquarings(x, powers_to_calculate)
 
 	y := powers[loopCount]
-
-	/*
-	for i := 0; i < 11; i++ {
-		s1 := powers[i].a.String()
-		s2 := powers[i].b.String()
-		s3 := powers[i].c.String()
-		fmt.Print(s1, s2, s3)
-	}
-	 */
 
 	identity := IdentityForDiscriminant(discriminant)
 
@@ -197,12 +190,40 @@ func generate_proof(identity, x, y *ClassGroup, T, k, l int, powers map[int]*Cla
 	return proof
 }
 
+
+func CreateVDF(discriminant *big.Int, x *ClassGroup, iterations, int_size_bits int) (y, proof *ClassGroup) {
+	L, k, _ := approximateParameters(iterations)
+
+	loopCount := int(math.Ceil(float64(iterations)/float64(k*L)))
+	powers_to_calculate := make([]int, loopCount + 2)
+
+	for i := 0; i < loopCount + 1; i++ {
+		powers_to_calculate[i] = i * k * L
+	}
+
+	powers_to_calculate[loopCount + 1] = iterations
+
+	powers := iterateSquarings(x, powers_to_calculate)
+
+	y = powers[iterations]
+
+	identity := IdentityForDiscriminant(discriminant)
+
+	proof = generate_proof(identity, x, y, iterations, k, L, powers)
+
+	return y, proof
+}
+
+
+
 func VerifyProof(x, y, proof *ClassGroup, T int) bool {
+
 	//x_s = x.serialize()
 	x_s := x.Serialize()
 
 	//y_s = y.serialize()
 	y_s := y.Serialize()
+
 
 	B := hash_prime(x_s, y_s)
 

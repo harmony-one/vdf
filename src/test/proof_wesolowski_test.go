@@ -1,13 +1,13 @@
 package main
 
 import (
-	"encoding/hex"
 	"github.com/stretchr/testify/assert"
 	"math/big"
 	"testing"
 	"vdf_go"
 )
 
+/*
 func TestCreateProof(t *testing.T) {
 	seed := []byte{0xde, 0xad, 0xbe, 0xef}
 	D := vdf_go.CreateDiscriminant(seed, 2048)
@@ -38,4 +38,17 @@ func TestVerifyProof(t *testing.T) {
 	proof,_ := vdf_go.NewClassGroupFromBytesDiscriminant(proof_buf,D)
 
 	assert.Equal(t, true, vdf_go.VerifyProof(x, y, proof, 10), "must be true")
+}
+*/
+
+
+func TestGenerateAndVerifyProof(t *testing.T) {
+	seed := []byte{0xde, 0xad, 0xbe, 0xef}
+	D := vdf_go.CreateDiscriminant(seed, 2048)
+	x := vdf_go.NewClassGroupFromAbDiscriminant(big.NewInt(2), big.NewInt(1), D)
+
+	for T := 10; T < 500; T++ {
+		y, proof := vdf_go.CreateVDF(D, x, T, 2048)
+		assert.Equal(t, true, vdf_go.VerifyProof(x, y, proof, T), "must be true")
+	}
 }

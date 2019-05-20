@@ -12,6 +12,7 @@ func two_s_complement_encoding(buf []byte, bytes_size int) []byte {
 	for i := len(buf) -1 ; i >= len(buf) - bytes_size; i-- {
 		thisdigit := uint8(buf[i])
 		thisdigit = thisdigit ^ 0xff
+
 		if thisdigit == 0xff {
 			thisdigit = 0
 			carry = 1
@@ -19,6 +20,7 @@ func two_s_complement_encoding(buf []byte, bytes_size int) []byte {
 			thisdigit = thisdigit + carry
 			carry = 0
 		}
+
 		buf[i] = thisdigit
 	}
 
@@ -29,6 +31,7 @@ func two_s_complement_encoding(buf []byte, bytes_size int) []byte {
 
 	return buf
 }
+
 
 
 func EncodeBigIntBigEndian(a *big.Int) []byte {
