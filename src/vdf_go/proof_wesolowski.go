@@ -3,9 +3,14 @@ package vdf_go
 import (
 	"crypto/sha256"
 	"encoding/binary"
+	"fmt"
+	"log"
 	"math"
 	"math/big"
+	"regexp"
+	"runtime"
 	"sort"
+	"time"
 )
 
 //Creates L and k parameters from papers, based on how many iterations need to be
@@ -158,7 +163,7 @@ func eval_optimized(identity, h *ClassGroup, B *big.Int, T, k, l int,  C map[int
 		}
 
 		//for b0 in range(0, pow(2, k0)):
-		for b0 := 0; b0 < int(math.Pow(float64(2), float64(k1))); b0++ {
+		for b0 := 0; b0 < int(math.Pow(float64(2), float64(k0))); b0++ {
 			z := identity
 			//for b1 in range(0, pow(2, k1)):
 			for b1 := 0; b1 < int(math.Pow(float64(2), float64(k1))); b1++ {
@@ -167,9 +172,9 @@ func eval_optimized(identity, h *ClassGroup, B *big.Int, T, k, l int,  C map[int
 			}
 			//x *= pow(z, b0)
 			x = x.Multiply(z.Pow(int64(b0)))
+
 		}
 	}
-
 
 	return x
 }
@@ -192,6 +197,8 @@ func generate_proof(identity, x, y *ClassGroup, T, k, l int, powers map[int]*Cla
 
 
 func CreateVDF(discriminant *big.Int, x *ClassGroup, iterations, int_size_bits int) (y, proof *ClassGroup) {
+	defer TimeTrack(time.Now())
+
 	L, k, _ := approximateParameters(iterations)
 
 	loopCount := int(math.Ceil(float64(iterations)/float64(k*L)))
@@ -217,6 +224,8 @@ func CreateVDF(discriminant *big.Int, x *ClassGroup, iterations, int_size_bits i
 
 
 func VerifyProof(x, y, proof *ClassGroup, T int) bool {
+	defer TimeTrack(time.Now())
+
 
 	//x_s = x.serialize()
 	x_s := x.Serialize()
@@ -237,4 +246,21 @@ func VerifyProof(x, y, proof *ClassGroup, T int) bool {
 	} else {
 		return false
 	}
+}
+
+
+func TimeTrack(start time.Time) {
+	elapsed := time.Since(start)
+
+	// Skip this function, and fetch the PC and file for its parent.
+	pc, _, _, _ := runtime.Caller(1)
+
+	// Retrieve a function object this functions parent.
+	funcObj := runtime.FuncForPC(pc)
+
+	// Regex to extract just the function name (and not the module path).
+	runtimeFunc := regexp.MustCompile(`^.*\.(.*)$`)
+	name := runtimeFunc.ReplaceAllString(funcObj.Name(), "$1")
+
+	log.Println(fmt.Sprintf("%s took %s", name, elapsed))
 }

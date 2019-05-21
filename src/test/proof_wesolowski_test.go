@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"github.com/stretchr/testify/assert"
 	"math/big"
 	"testing"
@@ -39,7 +41,7 @@ func TestVerifyProof(t *testing.T) {
 
 	assert.Equal(t, true, vdf_go.VerifyProof(x, y, proof, 10), "must be true")
 }
-*/
+
 
 
 func TestGenerateAndVerifyProof(t *testing.T) {
@@ -47,8 +49,84 @@ func TestGenerateAndVerifyProof(t *testing.T) {
 	D := vdf_go.CreateDiscriminant(seed, 2048)
 	x := vdf_go.NewClassGroupFromAbDiscriminant(big.NewInt(2), big.NewInt(1), D)
 
-	for T := 10; T < 500; T++ {
+	for T := 5; T < 100; T++ {
 		y, proof := vdf_go.CreateVDF(D, x, T, 2048)
-		assert.Equal(t, true, vdf_go.VerifyProof(x, y, proof, T), "must be true")
+		assert.Equal(t, true, vdf_go.VerifyProof(x, y, proof, T), "failed when T = %d", T)
+	}
+}
+
+func TestGenerateAndVerifyProof100(t *testing.T) {
+	seed := []byte{0xde, 0xad, 0xbe, 0xef}
+	D := vdf_go.CreateDiscriminant(seed, 2048)
+	x := vdf_go.NewClassGroupFromAbDiscriminant(big.NewInt(2), big.NewInt(1), D)
+
+	for T := 101; T < 200; T++ {
+		y, proof := vdf_go.CreateVDF(D, x, T, 2048)
+		assert.Equal(t, true, vdf_go.VerifyProof(x, y, proof, T), "failed when T = %d", T)
+	}
+}
+
+func TestGenerateAndVerifyProof200(t *testing.T) {
+	seed := []byte{0xde, 0xad, 0xbe, 0xef}
+	D := vdf_go.CreateDiscriminant(seed, 2048)
+	x := vdf_go.NewClassGroupFromAbDiscriminant(big.NewInt(2), big.NewInt(1), D)
+
+	for T := 201; T < 300; T++ {
+		y, proof := vdf_go.CreateVDF(D, x, T, 2048)
+		assert.Equal(t, true, vdf_go.VerifyProof(x, y, proof, T), "failed when T = %d", T)
+	}
+}
+
+func TestGenerateAndVerifyProof300(t *testing.T) {
+	seed := []byte{0xde, 0xad, 0xbe, 0xef}
+	D := vdf_go.CreateDiscriminant(seed, 2048)
+	x := vdf_go.NewClassGroupFromAbDiscriminant(big.NewInt(2), big.NewInt(1), D)
+
+	for T := 301; T < 400; T++ {
+		y, proof := vdf_go.CreateVDF(D, x, T, 2048)
+		assert.Equal(t, true, vdf_go.VerifyProof(x, y, proof, T), "failed when T = %d", T)
+	}
+}
+
+
+func TestGenerateAndVerifyProof400(t *testing.T) {
+	seed := []byte{0xde, 0xad, 0xbe, 0xef}
+	D := vdf_go.CreateDiscriminant(seed, 2048)
+	x := vdf_go.NewClassGroupFromAbDiscriminant(big.NewInt(2), big.NewInt(1), D)
+
+	for T := 401; T < 500; T++ {
+		y, proof := vdf_go.CreateVDF(D, x, T, 2048)
+		assert.Equal(t, true, vdf_go.VerifyProof(x, y, proof, T), "failed when T = %d", T)
+	}
+}
+
+func TestGenerateAndVerifyProof1000(t *testing.T) {
+	seed := []byte{0xde, 0xad, 0xbe, 0xef}
+	D := vdf_go.CreateDiscriminant(seed, 2048)
+	x := vdf_go.NewClassGroupFromAbDiscriminant(big.NewInt(2), big.NewInt(1), D)
+
+	for T := 1001; T < 1010; T++ {
+		y, proof := vdf_go.CreateVDF(D, x, T, 2048)
+		assert.Equal(t, true, vdf_go.VerifyProof(x, y, proof, T), "failed when T = %d", T)
+	}
+}
+*/
+
+
+
+
+func TestRandomInput(t *testing.T) {
+
+	for i :=1; i<8 ;i++ {
+		pRND := make([]byte, 32)
+		rand.Read(pRND)
+
+		D := vdf_go.CreateDiscriminant(pRND, 2048)
+		x := vdf_go.NewClassGroupFromAbDiscriminant(big.NewInt(2), big.NewInt(1), D)
+
+		T := 5000
+
+		y, proof := vdf_go.CreateVDF(D, x, T, 2048)
+		assert.Equal(t, true, vdf_go.VerifyProof(x, y, proof, T), "failed when pRND = %s", hex.EncodeToString(pRND))
 	}
 }

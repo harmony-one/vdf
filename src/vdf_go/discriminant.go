@@ -64,8 +64,8 @@ func EntropyFromSeed(seed []byte, byte_count int) []byte {
 
 
 //Return a discriminant of the given length using the given seed
-//Generate a probable prime p where p % 8 == 7.
-//Return -p.
+//It is a random prime p between 13 - 2^2K
+//return -p, where p % 8 == 7
 func CreateDiscriminant(seed []byte, length int) *big.Int {
 	extra := uint8(length) & 7
 	byte_count := ((length + 7) >> 3) + 2
