@@ -117,14 +117,14 @@ func TestGenerateAndVerifyProof1000(t *testing.T) {
 
 func TestRandomInput(t *testing.T) {
 
-	for i :=1; i<8 ;i++ {
+	for i := 0; i < 5 ;i++ {
 		pRND := make([]byte, 32)
 		rand.Read(pRND)
 
 		D := vdf_go.CreateDiscriminant(pRND, 2048)
 		x := vdf_go.NewClassGroupFromAbDiscriminant(big.NewInt(2), big.NewInt(1), D)
 
-		T := 5000
+		T := 2000 + 2000*i
 
 		y, proof := vdf_go.CreateVDF(D, x, T, 2048)
 		assert.Equal(t, true, vdf_go.VerifyProof(x, y, proof, T), "failed when pRND = %s", hex.EncodeToString(pRND))
