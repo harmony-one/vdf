@@ -1,14 +1,13 @@
 package main
 
 import (
-	"testing"
 	"github.com/stretchr/testify/assert"
+	"testing"
 
 	"fmt"
 	"math/big"
 	"vdf_go"
 )
-
 
 func TestClassDiscriminant(t *testing.T) {
 	t12_11_3 := vdf_go.NewClassGroup(big.NewInt(12), big.NewInt(11), big.NewInt(3))
@@ -37,7 +36,6 @@ func TestReduced(t *testing.T) {
 	assert.Equal(t, vdf_go.NewClassGroup(big.NewInt(1), big.NewInt(1), big.NewInt(1)), f.Reduced(), "they should be equal")
 }
 
-
 func check(a, b, c *big.Int, t *testing.T) {
 	r, s := vdf_go.SolveMod(a, b, c)
 	b.Mod(b, c)
@@ -61,9 +59,8 @@ func TestSolveMod(t *testing.T) {
 	check(big.NewInt(-565721958), big.NewInt(740), big.NewInt(4486780496), t)
 	check(big.NewInt(565721958), big.NewInt(740), big.NewInt(4486780496), t)
 	check(big.NewInt(-565721958), big.NewInt(-740), big.NewInt(4486780496), t)
-	check(big.NewInt( 565721958), big.NewInt(-740), big.NewInt(4486780496), t)
+	check(big.NewInt(565721958), big.NewInt(-740), big.NewInt(4486780496), t)
 }
-
 
 func TestMultiplication1(t *testing.T) {
 	t12_11_3 := vdf_go.NewClassGroup(big.NewInt(12), big.NewInt(11), big.NewInt(3))
@@ -72,7 +69,6 @@ func TestMultiplication1(t *testing.T) {
 	a := t12_11_3.Multiply(t93_109_32)
 	assert.Equal(t, a, vdf_go.NewClassGroup(big.NewInt(1), big.NewInt(1), big.NewInt(6)), "they should be equal")
 }
-
 
 func TestMultiplication2(t *testing.T) {
 	t12_11_3 := vdf_go.NewClassGroup(big.NewInt(12), big.NewInt(11), big.NewInt(3))
@@ -91,7 +87,7 @@ func TestMultiplication3(t *testing.T) {
 	t12_11_3 := vdf_go.NewClassGroup(big.NewInt(12), big.NewInt(11), big.NewInt(3))
 	t93_109_32 := vdf_go.NewClassGroup(big.NewInt(93), big.NewInt(109), big.NewInt(32))
 
-	a :=  t12_11_3.Multiply(t93_109_32)
+	a := t12_11_3.Multiply(t93_109_32)
 	assert.Equal(t, a, vdf_go.NewClassGroup(big.NewInt(1), big.NewInt(1), big.NewInt(6)), "they should be equal")
 }
 
@@ -102,7 +98,6 @@ func TestMultiplication4(t *testing.T) {
 	a := x.Multiply(y)
 	assert.Equal(t, a, vdf_go.NewClassGroup(big.NewInt(-1), big.NewInt(0), big.NewInt(2538270247313468068)), "they should be equal")
 }
-
 
 func TestSquare1(t *testing.T) {
 	x := vdf_go.NewClassGroup(big.NewInt(12), big.NewInt(11), big.NewInt(3))
@@ -117,13 +112,13 @@ func TestSquare2(t *testing.T) {
 }
 
 func TestSquare3(t *testing.T) {
-	x := vdf_go.NewClassGroup(big.NewInt(565721958), big.NewInt( -740), big.NewInt(4486780496))
+	x := vdf_go.NewClassGroup(big.NewInt(565721958), big.NewInt(-740), big.NewInt(4486780496))
 	y := x.Square()
 	assert.Equal(t, y, vdf_go.NewClassGroup(big.NewInt(81125853), big.NewInt(2339300), big.NewInt(31288073056)), "they should be equal")
 }
 
 func TestSerialize(t *testing.T) {
-	x := vdf_go.NewClassGroup(big.NewInt(-565721958), big.NewInt( -740), big.NewInt(4486780496))
+	x := vdf_go.NewClassGroup(big.NewInt(-565721958), big.NewInt(-740), big.NewInt(4486780496))
 	s := fmt.Sprintf("%02x", x.Serialize())
 	assert.Equal(t, s, "ffde47c49afffffffd1c", "they should be equal")
 }
@@ -132,4 +127,3 @@ func main() {
 	//vdf_go.NewClassGroup(big.NewInt(1), big.NewInt(1),big.NewInt(1))
 	fmt.Println("All tests are done")
 }
-
