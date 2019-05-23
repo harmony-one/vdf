@@ -364,7 +364,9 @@ func (group *ClassGroup) Square() *ClassGroup {
 }
 
 
+//encoding for a, b based on discriminant's size
 //encoding using two's complement for a, b
+//the first byte is sign, if a < 0, buf[0] = 0xff else buf[0] = 0
 func (group *ClassGroup) Serialize() []byte {
 	r := group.Reduced()
 	int_size_bits := group.Discriminant().BitLen()
@@ -408,7 +410,6 @@ func (group *ClassGroup) Serialize2() []byte {
 	//encode the negative number
 	if r.a.Sign() == -1 {
 		two_s_complement_encoding(buf, len(a_bytes))
-		//buf[0] = 1
 	}
 
 	buf2 := make([]byte, int_size)
@@ -418,7 +419,6 @@ func (group *ClassGroup) Serialize2() []byte {
 	//encode the negative number
 	if r.b.Sign() == -1 {
 		two_s_complement_encoding(buf2, len(b_bytes))
-		//buf[0] = 1
 	}
 
 	return append(buf, buf2...)

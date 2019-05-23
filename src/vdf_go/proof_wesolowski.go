@@ -58,28 +58,30 @@ func iterateSquarings(x *ClassGroup, powers_to_calculate []int) map[int]*ClassGr
 	return powers_calculated
 }
 
-func Create_proof_of_time_wesolowski(discriminant *big.Int, x *ClassGroup, iterations, int_size_bits int) ([]byte, []byte) {
-	L, k, _ := approximateParameters(iterations)
+func GenerateVDF(seed []byte, iterations, int_size_bits int) ([]byte, []byte) {
+	defer TimeTrack(time.Now())
 
-	loopCount := int(math.Ceil(float64(iterations)/float64(k*L)))
-	powers_to_calculate := make([]int, loopCount + 2)
+	D := CreateDiscriminant(seed, int_size_bits)
+	x := NewClassGroupFromAbDiscriminant(big.NewInt(2), big.NewInt(1), D)
 
-	for i := 0; i < loopCount + 1; i++ {
-		powers_to_calculate[i] = i * k * L
-	}
-
-	powers_to_calculate[loopCount + 1] = loopCount
-
-	powers := iterateSquarings(x, powers_to_calculate)
-
-	y := powers[loopCount]
-
-	identity := IdentityForDiscriminant(discriminant)
-
-	proof := generate_proof(identity, x, y, iterations, k, L, powers)
+	y, proof := CalculateVDF(D, x, iterations, int_size_bits)
 
 	return y.Serialize(), proof.Serialize()
 }
+
+func VerifyVDF(seed, proof_blob []byte, iterations, int_size_bits int) bool {
+	defer TimeTrack(time.Now())
+
+	int_size := (int_size_bits + 16) >> 4
+
+	D       := CreateDiscriminant(seed, int_size_bits)
+	x       := NewClassGroupFromAbDiscriminant(big.NewInt(2), big.NewInt(1), D)
+	y, _    := NewClassGroupFromBytesDiscriminant(proof_blob[: (2 * int_size)], D)
+	proof,_ := NewClassGroupFromBytesDiscriminant(proof_blob[2 * int_size:],D)
+
+	return VerifyProof(x, y, proof, iterations)
+}
+
 
 // Creates a random prime based on input x, y
 func hash_prime(x, y []byte)  *big.Int {
@@ -196,8 +198,7 @@ func generate_proof(identity, x, y *ClassGroup, T, k, l int, powers map[int]*Cla
 }
 
 
-func CreateVDF(discriminant *big.Int, x *ClassGroup, iterations, int_size_bits int) (y, proof *ClassGroup) {
-	defer TimeTrack(time.Now())
+func CalculateVDF(discriminant *big.Int, x *ClassGroup, iterations, int_size_bits int) (y, proof *ClassGroup) {
 
 	L, k, _ := approximateParameters(iterations)
 
@@ -224,8 +225,6 @@ func CreateVDF(discriminant *big.Int, x *ClassGroup, iterations, int_size_bits i
 
 
 func VerifyProof(x, y, proof *ClassGroup, T int) bool {
-	defer TimeTrack(time.Now())
-
 
 	//x_s = x.serialize()
 	x_s := x.Serialize()
