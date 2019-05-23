@@ -10,7 +10,7 @@ func primeLessThanN(num int) []int {
 	//initialized to false
 	sieve := make([]bool, num+1)
 
-	for i := 3; i <= int(math.Floor(math.Sqrt(float64(num)))); i+=2 {
+	for i := 3; i <= int(math.Floor(math.Sqrt(float64(num)))); i += 2 {
 		if sieve[i] == false {
 			for j := i * 2; j <= num; j += i {
 				sieve[j] = true // cross
@@ -19,7 +19,7 @@ func primeLessThanN(num int) []int {
 	}
 
 	primes := make([]int, 0, num)
-	for i := 3; i <= num; i+=2 {
+	for i := 3; i <= num; i += 2 {
 		if sieve[i] == false {
 			primes = append(primes, i)
 		}
@@ -60,5 +60,5 @@ func testIntLessThan(num int) {
 }
 
 func main() {
-	testIntLessThan(1<<16)
+	testIntLessThan(1 << 16)
 }

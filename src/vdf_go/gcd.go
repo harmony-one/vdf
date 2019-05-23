@@ -20,7 +20,7 @@ func extendedGCD(a, b *big.Int) (r, s, t *big.Int) {
 	//if r0 > r1:
 	//r0, r1, s0, s1, t0, t1 = r1, r0, t0, t1, s0, s1
 	if r0.Cmp(r1) == 1 {
-		oldR0 :=new(big.Int).Set(r0)
+		oldR0 := new(big.Int).Set(r0)
 		r0 = r1
 		r1 = oldR0
 		oldS0 := new(big.Int).Set(s0)
@@ -34,7 +34,7 @@ func extendedGCD(a, b *big.Int) (r, s, t *big.Int) {
 	//while r1 > 0:
 	for r1.Sign() == 1 {
 		//q, r = divmod(r0, r1)
-		r  := big.NewInt(1)
+		r := big.NewInt(1)
 		bb := new(big.Int).Set(b)
 		q, r := bb.DivMod(r0, r1, r)
 
@@ -51,7 +51,6 @@ func extendedGCD(a, b *big.Int) (r, s, t *big.Int) {
 	}
 	return r0, s0, t0
 }
-
 
 //wrapper around big.Int GCD to allow all input values for GCD
 //as Golang big.Int GCD requires both a, b > 0
@@ -71,7 +70,6 @@ func allInputValueGCD(a, b *big.Int) (r *big.Int) {
 	return new(big.Int).GCD(nil, nil, new(big.Int).Abs(a), new(big.Int).Abs(b))
 }
 
-
 //Solve ax == b mod m for x.
 //Return s, t where x = s + k * t for integer k yields all solutions.
 func SolveMod(a, b, m *big.Int) (s, t *big.Int) {
@@ -80,10 +78,10 @@ func SolveMod(a, b, m *big.Int) (s, t *big.Int) {
 	//d := big.NewInt(0)
 	//e := big.NewInt(0)
 	//g := new(big.Int).GCD(d, e, a, m)
-	g, d, _ := extendedGCD( a, m)
+	g, d, _ := extendedGCD(a, m)
 
 	//q, r = divmod(b, g)
-	r  := big.NewInt(1)
+	r := big.NewInt(1)
 	bb := new(big.Int).Set(b)
 	q, r := bb.DivMod(b, g, r)
 
@@ -97,6 +95,6 @@ func SolveMod(a, b, m *big.Int) (s, t *big.Int) {
 	//return (q * d) % m, m // g
 	q.Mul(q, d)
 	s = q.Mod(q, m)
-	t  = floorDivision(m, g)
+	t = floorDivision(m, g)
 	return s, t
 }

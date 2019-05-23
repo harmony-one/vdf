@@ -13,13 +13,13 @@ type Pair struct {
 }
 
 var odd_primes = primeLessThanN(1 << 16)
-var	m = 8 * 3 * 5 * 7 * 11 * 13
+var m = 8 * 3 * 5 * 7 * 11 * 13
 var residues = make([]int, 0, m)
 var sieve_info = make([]Pair, 0, len(odd_primes))
 
 func init() {
 	for x := 7; x < m; x += 8 {
-		if (x % 3 != 0) && (x % 5 !=0) && (x % 7 !=0) && (x % 11 !=0) && (x % 13 != 0) {
+		if (x%3 != 0) && (x%5 != 0) && (x%7 != 0) && (x%11 != 0) && (x%13 != 0) {
 			residues = append(residues, x)
 		}
 	}
@@ -28,7 +28,7 @@ func init() {
 
 	for i := 0; i < len(odd_primes_above_13); i++ {
 		prime := int64(odd_primes_above_13[i])
-  		sieve_info = append(sieve_info, Pair{p:int64(prime), q:modExp(int64(m) % prime, prime - 2, prime )})
+		sieve_info = append(sieve_info, Pair{p: int64(prime), q: modExp(int64(m)%prime, prime-2, prime)})
 	}
 }
 
@@ -45,14 +45,14 @@ func modExp(base, exponent, modulus int64) int64 {
 }
 
 func EntropyFromSeed(seed []byte, byte_count int) []byte {
-	buffer    := bytes.Buffer{}
+	buffer := bytes.Buffer{}
 	bufferSize := 0
 
 	extra := uint16(0)
 	for bufferSize <= byte_count {
 		extra_bits := make([]byte, 2)
 		binary.BigEndian.PutUint16(extra_bits, extra)
-		more_entropy := sha256.Sum256(append(seed , extra_bits...)[:])
+		more_entropy := sha256.Sum256(append(seed, extra_bits...)[:])
 		buffer.Write(more_entropy[:])
 		bufferSize += sha256.Size
 		extra += 1
@@ -60,8 +60,6 @@ func EntropyFromSeed(seed []byte, byte_count int) []byte {
 
 	return buffer.Bytes()[:byte_count]
 }
-
-
 
 //Return a discriminant of the given length using the given seed
 //It is a random prime p between 13 - 2^2K
@@ -76,7 +74,7 @@ func CreateDiscriminant(seed []byte, length int) *big.Int {
 	n = new(big.Int).Rsh(n, uint(((8 - extra) & 7)))
 	n = new(big.Int).SetBit(n, length-1, 1)
 	n = new(big.Int).Sub(n, new(big.Int).Mod(n, big.NewInt(int64(m))))
-	n = new(big.Int).Add(n, big.NewInt(int64(residues[int(binary.BigEndian.Uint16(entropy[len(entropy)-2 : len(entropy)]))%len(residues)])))
+	n = new(big.Int).Add(n, big.NewInt(int64(residues[int(binary.BigEndian.Uint16(entropy[len(entropy)-2:len(entropy)]))%len(residues)])))
 
 	negN := new(big.Int).Neg(n)
 
@@ -96,9 +94,8 @@ func CreateDiscriminant(seed []byte, length int) *big.Int {
 			}
 		}
 
-
 		for i, v := range sieve {
-			t  := new(big.Int).Add(n, big.NewInt(int64(m) * int64(i)))
+			t := new(big.Int).Add(n, big.NewInt(int64(m)*int64(i)))
 			if !v && t.ProbablyPrime(1) {
 				return new(big.Int).Neg(t)
 			}

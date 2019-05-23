@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/hex"
 	"github.com/stretchr/testify/assert"
 	"testing"
 
@@ -122,6 +123,21 @@ func TestSerialize(t *testing.T) {
 	s := fmt.Sprintf("%02x", x.Serialize())
 	assert.Equal(t, s, "ffde47c49afffffffd1c", "they should be equal")
 }
+
+
+func TestSerialize1(t *testing.T) {
+	x := vdf_go.NewClassGroup(big.NewInt(-0x10000), big.NewInt(-740), big.NewInt(4486780496))
+	s := fmt.Sprintf("%02x", x.Serialize())
+	assert.Equal(t, s, "ffff0000fffffd1c", "they should be equal")
+}
+
+func TestDeSerialize1(t *testing.T) {
+	str   := "ff100000ffffffff"
+	buf,_ := hex.DecodeString(str)
+	x, _ := vdf_go.NewClassGroupFromBytesDiscriminant(buf, big.NewInt(4486780496111111))
+	assert.Equal(t, str, hex.EncodeToString(x.Serialize()), "they should be equal")
+}
+
 
 func main() {
 	//vdf_go.NewClassGroup(big.NewInt(1), big.NewInt(1),big.NewInt(1))

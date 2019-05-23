@@ -9,7 +9,7 @@ func two_s_complement_encoding(buf []byte, bytes_size int) []byte {
 	var carry uint8 = 1
 
 	//use one additional byte for signing
-	for i := len(buf) -1 ; i >= len(buf) - bytes_size; i-- {
+	for i := len(buf) - 1; i >= len(buf)-bytes_size; i-- {
 		thisdigit := uint8(buf[i])
 		thisdigit = thisdigit ^ 0xff
 
@@ -36,27 +36,18 @@ func two_s_complement_encoding(buf []byte, bytes_size int) []byte {
 	return buf
 }
 
-
 func EncodeBigIntBigEndian(a *big.Int) []byte {
 	int_size_bits := a.BitLen()
 	int_size := (int_size_bits + 16) >> 3
 
 	buf := make([]byte, int_size)
-	a_bytes :=  a.Bytes()
-	copy(buf[int_size - len(a_bytes): ], a_bytes)
+	a_bytes := a.Bytes()
+	copy(buf[int_size-len(a_bytes):], a_bytes)
 
 	//encode the negative number
 	if a.Sign() == -1 {
 		two_s_complement_encoding(buf, len(a_bytes))
 	}
 
-	return buf
-}
-
-
-func EncodeBigIntAbs(a *big.Int, int_size int) []byte {
-	buf := make([]byte, int_size)
-	a_bytes :=  a.Bytes()
-	copy(buf, a_bytes)
 	return buf
 }
