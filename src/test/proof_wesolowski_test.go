@@ -8,6 +8,7 @@ import (
 	"vdf_go"
 )
 
+
 func TestCreateProof(t *testing.T) {
 	seed := []byte{0xde, 0xad, 0xbe, 0xef}
 

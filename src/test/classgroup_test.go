@@ -2,14 +2,23 @@ package main
 
 import (
 	"encoding/hex"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
 
-	"fmt"
 	"math/big"
 	"vdf_go"
 )
 
+/*
+func TestSquare0(t *testing.T) {
+	x := vdf_go.NewClassGroup(big.NewInt(16), big.NewInt(-23), big.NewInt(58373892))
+	y := x.Square()
+	y1:= x.Square1()
+	assert.Equal(t, y, vdf_go.NewClassGroup(big.NewInt(81125853), big.NewInt(2339300), big.NewInt(31288073056)), "they should be equal")
+	assert.Equal(t, y1, vdf_go.NewClassGroup(big.NewInt(81125853), big.NewInt(2339300), big.NewInt(31288073056)), "they should be equal")
+}
+ */
 func TestClassDiscriminant(t *testing.T) {
 	t12_11_3 := vdf_go.NewClassGroup(big.NewInt(12), big.NewInt(11), big.NewInt(3))
 	assert.Equal(t, "-23", t12_11_3.Discriminant().String(), "they should be equal")
@@ -112,10 +121,13 @@ func TestSquare2(t *testing.T) {
 	assert.Equal(t, y, vdf_go.NewClassGroup(big.NewInt(2), big.NewInt(-1), big.NewInt(3)), "they should be equal")
 }
 
+
 func TestSquare3(t *testing.T) {
 	x := vdf_go.NewClassGroup(big.NewInt(565721958), big.NewInt(-740), big.NewInt(4486780496))
 	y := x.Square()
+	y1:= x.Square1()
 	assert.Equal(t, y, vdf_go.NewClassGroup(big.NewInt(81125853), big.NewInt(2339300), big.NewInt(31288073056)), "they should be equal")
+	assert.Equal(t, y1, vdf_go.NewClassGroup(big.NewInt(81125853), big.NewInt(2339300), big.NewInt(31288073056)), "they should be equal")
 }
 
 func TestSerialize(t *testing.T) {

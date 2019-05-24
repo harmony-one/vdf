@@ -244,6 +244,7 @@ func (group *ClassGroup) Multiply(other *ClassGroup) *ClassGroup {
 func (group *ClassGroup) Pow(n int64) *ClassGroup {
 	x := CloneClassGroup(group)
 	items_prod := group.identity()
+
 	for n > 0 {
 		if n&1 == 1 {
 			items_prod = items_prod.Multiply(x)
@@ -269,7 +270,34 @@ func (group *ClassGroup) BigPow(n *big.Int) *ClassGroup {
 	return items_prod
 }
 
+
 func (group *ClassGroup) Square() *ClassGroup {
+
+	//Solve bk ≡ c mod a, t
+	//the solutions to which have the form k = µ + νn for all n ∈ Z.
+	u, _ := SolveMod(group.b, group.c, group.a)
+	//aa := fmt.Sprintf("%d",u)
+	//fmt.Print(aa)
+
+	//A = a
+	A := new(big.Int).Mul(group.a, group.a)
+
+	//B = b − 2aµ,
+	au := new(big.Int).Mul(group.a, u)
+	B  := new(big.Int).Sub(group.b, new(big.Int).Mul(au, big.NewInt(2)))
+
+	//C = µ ^ 2 - (bµ−c)//a
+	C  := new(big.Int).Mul(u, u)
+	m  := new(big.Int).Mul(group.b, u)
+	m   = new(big.Int).Sub(m, group.c)
+	m   = floorDivision(m, group.a)
+	C   = new(big.Int).Sub(C, m)
+
+	return NewClassGroup(A, B, C).Reduced()
+}
+
+
+func (group *ClassGroup) Square1() *ClassGroup {
 	//a1, b1, c1 = self.reduced()
 	x := group.Reduced()
 
