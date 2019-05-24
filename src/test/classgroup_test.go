@@ -122,14 +122,6 @@ func TestSquare2(t *testing.T) {
 }
 
 
-func TestSquare3(t *testing.T) {
-	x := vdf_go.NewClassGroup(big.NewInt(565721958), big.NewInt(-740), big.NewInt(4486780496))
-	y := x.Square()
-	y1:= x.Square1()
-	assert.Equal(t, y, vdf_go.NewClassGroup(big.NewInt(81125853), big.NewInt(2339300), big.NewInt(31288073056)), "they should be equal")
-	assert.Equal(t, y1, vdf_go.NewClassGroup(big.NewInt(81125853), big.NewInt(2339300), big.NewInt(31288073056)), "they should be equal")
-}
-
 func TestSerialize(t *testing.T) {
 	x := vdf_go.NewClassGroup(big.NewInt(-565721958), big.NewInt(-740), big.NewInt(4486780496))
 	s := fmt.Sprintf("%02x", x.Serialize())
