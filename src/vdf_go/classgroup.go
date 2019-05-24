@@ -44,7 +44,7 @@ func NewClassGroupFromBytesDiscriminant(buf []byte, discriminant *big.Int) (*Cla
 	a := new(big.Int)
 
 	//if a is a negative number
-	if buf[0] & 0x8 != 0 {
+	if buf[0]&0x8 != 0 {
 		two_s_complement_encoding(buf[:int_size], int_size)
 		a.SetBytes(buf[1:int_size])
 		a = new(big.Int).Neg(a)
@@ -270,7 +270,6 @@ func (group *ClassGroup) BigPow(n *big.Int) *ClassGroup {
 	return items_prod
 }
 
-
 func (group *ClassGroup) Square() *ClassGroup {
 
 	//Solve bk ≡ c mod a, t
@@ -284,20 +283,19 @@ func (group *ClassGroup) Square() *ClassGroup {
 
 	//B = b − 2aµ,
 	au := new(big.Int).Mul(group.a, u)
-	B  := new(big.Int).Sub(group.b, new(big.Int).Mul(au, big.NewInt(2)))
+	B := new(big.Int).Sub(group.b, new(big.Int).Mul(au, big.NewInt(2)))
 
 	//C = µ ^ 2 - (bµ−c)//a
-	C  := new(big.Int).Mul(u, u)
-	m  := new(big.Int).Mul(group.b, u)
-	m   = new(big.Int).Sub(m, group.c)
-	m   = floorDivision(m, group.a)
-	C   = new(big.Int).Sub(C, m)
+	C := new(big.Int).Mul(u, u)
+	m := new(big.Int).Mul(group.b, u)
+	m = new(big.Int).Sub(m, group.c)
+	m = floorDivision(m, group.a)
+	C = new(big.Int).Sub(C, m)
 
 	return NewClassGroup(A, B, C).Reduced()
 }
 
-
-func (group *ClassGroup) Square1() *ClassGroup {
+func (group *ClassGroup) SquareUsingMultiply() *ClassGroup {
 	//a1, b1, c1 = self.reduced()
 	x := group.Reduced()
 

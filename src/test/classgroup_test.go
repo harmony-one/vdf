@@ -10,15 +10,6 @@ import (
 	"vdf_go"
 )
 
-/*
-func TestSquare0(t *testing.T) {
-	x := vdf_go.NewClassGroup(big.NewInt(16), big.NewInt(-23), big.NewInt(58373892))
-	y := x.Square()
-	y1:= x.Square1()
-	assert.Equal(t, y, vdf_go.NewClassGroup(big.NewInt(81125853), big.NewInt(2339300), big.NewInt(31288073056)), "they should be equal")
-	assert.Equal(t, y1, vdf_go.NewClassGroup(big.NewInt(81125853), big.NewInt(2339300), big.NewInt(31288073056)), "they should be equal")
-}
- */
 func TestClassDiscriminant(t *testing.T) {
 	t12_11_3 := vdf_go.NewClassGroup(big.NewInt(12), big.NewInt(11), big.NewInt(3))
 	assert.Equal(t, "-23", t12_11_3.Discriminant().String(), "they should be equal")
@@ -121,13 +112,11 @@ func TestSquare2(t *testing.T) {
 	assert.Equal(t, y, vdf_go.NewClassGroup(big.NewInt(2), big.NewInt(-1), big.NewInt(3)), "they should be equal")
 }
 
-
 func TestSerialize(t *testing.T) {
 	x := vdf_go.NewClassGroup(big.NewInt(-565721958), big.NewInt(-740), big.NewInt(4486780496))
 	s := fmt.Sprintf("%02x", x.Serialize())
 	assert.Equal(t, s, "ffde47c49afffffffd1c", "they should be equal")
 }
-
 
 func TestSerialize1(t *testing.T) {
 	x := vdf_go.NewClassGroup(big.NewInt(-0x10000), big.NewInt(-740), big.NewInt(4486780496))
@@ -136,14 +125,8 @@ func TestSerialize1(t *testing.T) {
 }
 
 func TestDeSerialize1(t *testing.T) {
-	str   := "ff100000ffffffff"
-	buf,_ := hex.DecodeString(str)
+	str := "ff100000ffffffff"
+	buf, _ := hex.DecodeString(str)
 	x, _ := vdf_go.NewClassGroupFromBytesDiscriminant(buf, big.NewInt(4486780496111111))
 	assert.Equal(t, str, hex.EncodeToString(x.Serialize()), "they should be equal")
-}
-
-
-func main() {
-	//vdf_go.NewClassGroup(big.NewInt(1), big.NewInt(1),big.NewInt(1))
-	fmt.Println("All tests are done")
 }

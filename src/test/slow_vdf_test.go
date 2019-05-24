@@ -60,4 +60,3 @@ func TestVerifyProofCSV(t *testing.T) {
 
 	}
 }
-
