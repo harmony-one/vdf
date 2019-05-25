@@ -1,2 +1,1 @@
-# vdf
-go implementation of verifiable delay function (VDF)
+### VDF (verified delay function) implementation in Golang
