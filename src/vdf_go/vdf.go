@@ -46,7 +46,6 @@ func (vdf *VDF) Execute() {
 // Verify runs the verification of generated proof
 // currently on i7-6700K, verification took around 350 ms
 func (vdf *VDF) Verify(proof [516]byte) bool {
-
 	return VerifyVDF(vdf.input[:], proof[:], vdf.difficulty, sizeInBits)
 }
 
