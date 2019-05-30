@@ -22,12 +22,13 @@ func New(difficulty int, input [32]byte) *VDF {
 }
 
 // GetOutputChannel returns the vdf output channel.
+// VDF output consists of 258 bytes of serialized Y and  258 bytes of serialized Proof
 func (vdf *VDF) GetOutputChannel() chan [516]byte {
 	return vdf.outputChan
 }
 
 // Execute runs the VDF until it's finished and put the result into output channel.
-// currently on i7-6700K, if iteration == 10000, it took 14 seconds
+// currently on i7-6700K, it takes about 14 seconds when iteration is set to 10000
 func (vdf *VDF) Execute() {
 	vdf.finished = false
 
@@ -44,7 +45,7 @@ func (vdf *VDF) Execute() {
 }
 
 // Verify runs the verification of generated proof
-// currently on i7-6700K, verification took around 350 ms
+// currently on i7-6700K, verification takes about 350 ms
 func (vdf *VDF) Verify(proof [516]byte) bool {
 	return VerifyVDF(vdf.input[:], proof[:], vdf.difficulty, sizeInBits)
 }
