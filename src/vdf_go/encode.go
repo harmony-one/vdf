@@ -4,7 +4,6 @@ import "math/big"
 
 //inplace encoding using two's complementary
 func two_s_complement_encoding(buf []byte, bytes_size int) []byte {
-
 	//two's complement carry
 	var carry uint8 = 1
 

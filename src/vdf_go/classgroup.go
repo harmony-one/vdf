@@ -30,7 +30,6 @@ func NewClassGroupFromAbDiscriminant(a, b, discriminant *big.Int) *ClassGroup {
 }
 
 func NewClassGroupFromBytesDiscriminant(buf []byte, discriminant *big.Int) (*ClassGroup, bool) {
-
 	int_size_bits := discriminant.BitLen()
 
 	//add additional one byte for sign
@@ -271,7 +270,6 @@ func (group *ClassGroup) BigPow(n *big.Int) *ClassGroup {
 }
 
 func (group *ClassGroup) Square() *ClassGroup {
-
 	//Solve bk ≡ c mod a, t
 	//the solutions to which have the form k = µ + νn for all n ∈ Z.
 	u, _ := SolveMod(group.b, group.c, group.a)

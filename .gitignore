@@ -9,6 +9,8 @@
 
 *.out
 
+bin/
+
 # Dependency directories (remove the comment below to include it)
 github.com/
 golang.org/

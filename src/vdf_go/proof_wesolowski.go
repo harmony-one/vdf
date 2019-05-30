@@ -83,7 +83,6 @@ func VerifyVDF(seed, proof_blob []byte, iterations, int_size_bits int) bool {
 
 // Creates a random prime based on input x, y
 func hashPrime(x, y []byte) *big.Int {
-
 	var j uint64 = 0
 
 	jBuf := make([]byte, 8)
@@ -108,7 +107,6 @@ func hashPrime(x, y []byte) *big.Int {
 // Get's the ith block of  2^T // B
 // such that sum(get_block(i) * 2^ki) = t^T // B
 func getBlock(i, k, T int, B *big.Int) *big.Int {
-
 	//(pow(2, k) * pow(2, T - k * (i + 1), B)) // B
 	p1 := big.NewInt(int64(math.Pow(2, float64(k))))
 	p2 := new(big.Int).Exp(big.NewInt(2), big.NewInt(int64(T-k*(i+1))), B)
@@ -117,7 +115,6 @@ func getBlock(i, k, T int, B *big.Int) *big.Int {
 
 //Optimized evalutation of h ^ (2^T // B)
 func evalOptimized(identity, h *ClassGroup, B *big.Int, T, k, l int, C map[int]*ClassGroup) *ClassGroup {
-
 	//k1 = k//2
 	var k1 int = k / 2
 	k0 := k - k1
@@ -193,7 +190,6 @@ func generateProof(identity, x, y *ClassGroup, T, k, l int, powers map[int]*Clas
 }
 
 func calculateVDF(discriminant *big.Int, x *ClassGroup, iterations, int_size_bits int) (y, proof *ClassGroup) {
-
 	L, k, _ := approximateParameters(iterations)
 
 	loopCount := int(math.Ceil(float64(iterations) / float64(k*L)))
@@ -217,7 +213,6 @@ func calculateVDF(discriminant *big.Int, x *ClassGroup, iterations, int_size_bit
 }
 
 func verifyProof(x, y, proof *ClassGroup, T int) bool {
-
 	//x_s = x.serialize()
 	x_s := x.Serialize()
 
