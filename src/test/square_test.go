@@ -11,7 +11,7 @@ import (
 	"runtime"
 	"testing"
 	"time"
-	"vdf_go"
+	"github.com/harmony-one/vdf/src/vdf_go"
 )
 
 func RepeatedSquare(x *vdf_go.ClassGroup, k int) *vdf_go.ClassGroup {

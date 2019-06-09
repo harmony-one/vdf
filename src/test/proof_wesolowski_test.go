@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"github.com/stretchr/testify/assert"
 	"testing"
-	"vdf_go"
+	"github.com/harmony-one/vdf/src/vdf_go"
 )
 
 func TestCreateProof(t *testing.T) {

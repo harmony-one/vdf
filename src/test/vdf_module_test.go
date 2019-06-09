@@ -7,7 +7,7 @@ import (
 	"log"
 	"testing"
 	"time"
-	"vdf_go"
+	"github.com/harmony-one/vdf/src/vdf_go"
 )
 
 func TestVDFModule(t *testing.T) {

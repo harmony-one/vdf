@@ -5,7 +5,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"math/big"
 	"testing"
-	"vdf_go"
+	"github.com/harmony-one/vdf/src/vdf_go"
 )
 
 func TestBigNumEncoding(t *testing.T) {
