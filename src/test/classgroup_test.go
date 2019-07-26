@@ -38,7 +38,7 @@ func TestReduced(t *testing.T) {
 }
 
 func check(a, b, c *big.Int, t *testing.T) {
-	r, s := vdf_go.SolveMod(a, b, c)
+	r, s, _ := vdf_go.SolveMod(a, b, c)
 	b.Mod(b, c)
 
 	for k := 0; k < 50; k++ {

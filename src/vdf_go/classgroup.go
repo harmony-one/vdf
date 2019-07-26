@@ -178,26 +178,20 @@ func (group *ClassGroup) Multiply(other *ClassGroup) *ClassGroup {
 	//u = g // w
 	u := floorDivision(g, w)
 
-	/*
-		solve these equations for k, l, m
-
-		k * t - l * s = h
-		k * u - m * s = c2
-		l * u - m * t = c1
-
-		solve
-		(tu)k - (hu + sc) = 0 mod st
-		k = (- hu - sc) * (tu)^-1
-	*/
-
 	//k_temp, constant_factor = mod.solve_mod(t * u, h * u + s * c1, s * t)
 	b := new(big.Int).Mul(h, u)
 	sc := new(big.Int).Mul(s, x.c)
 	b.Add(b, sc)
-	k_temp, constant_factor := SolveMod(new(big.Int).Mul(t, u), b, new(big.Int).Mul(s, t))
+	k_temp, constant_factor, solvable := SolveMod(new(big.Int).Mul(t, u), b, new(big.Int).Mul(s, t))
+	if !solvable {
+		return nil
+	}
 
 	//n, constant_factor_2 = mod.solve_mod(t * constant_factor, h - t * k_temp, s)
-	n, _ := SolveMod(new(big.Int).Mul(t, constant_factor), new(big.Int).Sub(h, new(big.Int).Mul(t, k_temp)), s)
+	n, _ , solvable := SolveMod(new(big.Int).Mul(t, constant_factor), new(big.Int).Sub(h, new(big.Int).Mul(t, k_temp)), s)
+	if !solvable {
+		return nil
+	}
 
 	//k = k_temp + constant_factor * n
 	k := new(big.Int).Add(k_temp, new(big.Int).Mul(constant_factor, n))
@@ -247,8 +241,14 @@ func (group *ClassGroup) Pow(n int64) *ClassGroup {
 	for n > 0 {
 		if n&1 == 1 {
 			items_prod = items_prod.Multiply(x)
+			if items_prod == nil {
+				return nil
+			}
 		}
 		x = x.Square()
+		if x == nil {
+			return nil
+		}
 		n >>= 1
 	}
 	return items_prod
@@ -262,19 +262,24 @@ func (group *ClassGroup) BigPow(n *big.Int) *ClassGroup {
 	for p.Sign() > 0 {
 		if p.Bit(0) == 1 {
 			items_prod = items_prod.Multiply(x)
+			if items_prod == nil {
+				return nil
+			}
 		}
 		x = x.Square()
+		if x == nil {
+			return nil
+		}
 		p.Rsh(p, 1)
 	}
 	return items_prod
 }
 
 func (group *ClassGroup) Square() *ClassGroup {
-	//Solve bk ≡ c mod a, t
-	//the solutions to which have the form k = µ + νn for all n ∈ Z.
-	u, _ := SolveMod(group.b, group.c, group.a)
-	//aa := fmt.Sprintf("%d",u)
-	//fmt.Print(aa)
+	u, _ , solvable := SolveMod(group.b, group.c, group.a)
+	if !solvable {
+		return nil
+	}
 
 	//A = a
 	A := new(big.Int).Mul(group.a, group.a)
@@ -316,26 +321,20 @@ func (group *ClassGroup) SquareUsingMultiply() *ClassGroup {
 	//u = g // w
 	u := floorDivision(g, w)
 
-	/*
-		solve these equations for k, l, m
-
-		k * t - l * s = h
-		k * u - m * s = c2
-		l * u - m * t = c1
-
-		solve
-		(tu)k - (hu + sc) = 0 mod st
-		k = (- hu - sc) * (tu)^-1
-	*/
-
 	//k_temp, constant_factor = mod.solve_mod(t * u, h * u + s * c1, s * t)
 	b := new(big.Int).Mul(h, u)
 	sc := new(big.Int).Mul(s, x.c)
 	b.Add(b, sc)
-	k_temp, constant_factor := SolveMod(new(big.Int).Mul(t, u), b, new(big.Int).Mul(s, t))
+	k_temp, constant_factor, solvable := SolveMod(new(big.Int).Mul(t, u), b, new(big.Int).Mul(s, t))
+	if !solvable {
+		return nil
+	}
 
 	//n, constant_factor_2 = mod.solve_mod(t * constant_factor, h - t * k_temp, s)
-	n, _ := SolveMod(new(big.Int).Mul(t, constant_factor), new(big.Int).Sub(h, new(big.Int).Mul(t, k_temp)), s)
+	n, _ , solvable := SolveMod(new(big.Int).Mul(t, constant_factor), new(big.Int).Sub(h, new(big.Int).Mul(t, k_temp)), s)
+	if !solvable {
+		return nil
+	}
 
 	//k = k_temp + constant_factor * n
 	k := new(big.Int).Add(k_temp, new(big.Int).Mul(constant_factor, n))

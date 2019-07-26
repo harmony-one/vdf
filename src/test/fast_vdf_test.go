@@ -7,6 +7,16 @@ import (
 	"github.com/harmony-one/vdf/src/vdf_go"
 )
 
+func Test2047(t *testing.T) {
+	input, _ := hex.DecodeString("ed8c9fa1c04979a2d39e4c91b97fafa7325b66fda3d06a14af4500d113d2fec0")
+	iteration := 10       /* any value */
+	int_size_bits := 2049 /* most of value not power of two */
+	y, proof := vdf_go.GenerateVDF(input[:], iteration, int_size_bits)
+	output := append(y, proof...)
+	valid := vdf_go.VerifyVDF(input[:], output, iteration, int_size_bits)
+	assert.Equal(t, true, valid, "must be true")
+}
+
 func Test1000(t *testing.T) {
 	seed := []byte{0xde, 0xad, 0xbe, 0xef}
 	ref_output := "0011c26e62c608dba629ce37953b2c7765f6c3c48f58ae5dc6ebc19206ca3135f8a240538a42f989d990488185f2d10a2504838f4f2e4dd933119088aa0e5b506bfd835d03147b03d5111e6ca135bf297435faf27a8ccbdb0c7598934fdccde6c9afbdc0488662618fc3934eaa9913f97559fb119ff959fc5f35a71da783c64af0000461c617ca4fd50ab15bf8c62963b043e1920b619402aa11a7fb82b793e9fca643bb8b8026e09493e6ed0f69ad7dafef7938f7c78d7067247d43ce2cf73174ffd78d2d4107a0421cf16a7fb118978b4903425bb84dcc4d0102267103494b798247cabc65caff373c368530fb7d869317d86a279eb55facf75a430109b5343875003fc63ce964ad0fc804687fb21b9322d672299cf0eeb53f5f426a4123e44db2ca593b50c026e54c079cd79634cd3969941aba18edae5fb51792776a2ed9076c79a456bb783ad87cdad013ce8a933c0c1a787a0232205dfa34b8ab65c1bd06f4004a3ffd5aec0c9cabedd081228c0b8c59e2bc2487f1fa2344288a8e9d7eefd169003fb7e55b707e9c5d76c84fa510647ec6c392f19f1a4ce98e71a601c1ee2479a93e5b9e4512b7c4cffc18b3498a36334e49db29aa56d487dec7b9dcc3128f722888903f10fd468a62ebb599eaced4114e36df647cc60b16c15f33b2f1c96bfe7c33d274ca57a456448ac7ac5539d10d71f72c0561d0460b9ab8f338898c8b8203"
@@ -34,3 +44,4 @@ func Test5000Verify(t *testing.T) {
 	buf, _ := hex.DecodeString(ref_output)
 	assert.Equal(t, true, vdf_go.VerifyVDF(seed, buf, 5000, 2048), "must be true")
 }
+
