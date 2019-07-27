@@ -188,7 +188,7 @@ func (group *ClassGroup) Multiply(other *ClassGroup) *ClassGroup {
 	}
 
 	//n, constant_factor_2 = mod.solve_mod(t * constant_factor, h - t * k_temp, s)
-	n, _ , solvable := SolveMod(new(big.Int).Mul(t, constant_factor), new(big.Int).Sub(h, new(big.Int).Mul(t, k_temp)), s)
+	n, _, solvable := SolveMod(new(big.Int).Mul(t, constant_factor), new(big.Int).Sub(h, new(big.Int).Mul(t, k_temp)), s)
 	if !solvable {
 		return nil
 	}
@@ -276,7 +276,7 @@ func (group *ClassGroup) BigPow(n *big.Int) *ClassGroup {
 }
 
 func (group *ClassGroup) Square() *ClassGroup {
-	u, _ , solvable := SolveMod(group.b, group.c, group.a)
+	u, _, solvable := SolveMod(group.b, group.c, group.a)
 	if !solvable {
 		return nil
 	}
@@ -331,7 +331,7 @@ func (group *ClassGroup) SquareUsingMultiply() *ClassGroup {
 	}
 
 	//n, constant_factor_2 = mod.solve_mod(t * constant_factor, h - t * k_temp, s)
-	n, _ , solvable := SolveMod(new(big.Int).Mul(t, constant_factor), new(big.Int).Sub(h, new(big.Int).Mul(t, k_temp)), s)
+	n, _, solvable := SolveMod(new(big.Int).Mul(t, constant_factor), new(big.Int).Sub(h, new(big.Int).Mul(t, k_temp)), s)
 	if !solvable {
 		return nil
 	}

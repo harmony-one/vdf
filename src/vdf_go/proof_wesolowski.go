@@ -48,7 +48,7 @@ func iterateSquarings(x *ClassGroup, powers_to_calculate []int) map[int]*ClassGr
 
 		for i := 0; i < current_power-previous_power; i++ {
 			currX = currX.Pow(2)
-			if currX == nil{
+			if currX == nil {
 				return nil
 			}
 		}
