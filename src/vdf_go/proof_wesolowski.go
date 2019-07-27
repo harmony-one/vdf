@@ -48,6 +48,9 @@ func iterateSquarings(x *ClassGroup, powers_to_calculate []int) map[int]*ClassGr
 
 		for i := 0; i < current_power-previous_power; i++ {
 			currX = currX.Pow(2)
+			if currX == nil {
+				return nil
+			}
 		}
 
 		previous_power = current_power
@@ -65,7 +68,11 @@ func GenerateVDF(seed []byte, iterations, int_size_bits int) ([]byte, []byte) {
 
 	y, proof := calculateVDF(D, x, iterations, int_size_bits)
 
-	return y.Serialize(), proof.Serialize()
+	if (y == nil) || (proof == nil) {
+		return nil, nil
+	} else {
+		return y.Serialize(), proof.Serialize()
+	}
 }
 
 func VerifyVDF(seed, proof_blob []byte, iterations, int_size_bits int) bool {
@@ -126,6 +133,9 @@ func evalOptimized(identity, h *ClassGroup, B *big.Int, T, k, l int, C map[int]*
 		//x = pow(x, pow(2, k))
 		b_limit := int64(math.Pow(2, float64(k)))
 		x = x.Pow(b_limit)
+		if x == nil {
+			return nil
+		}
 
 		//ys = {}
 		ys := make([]*ClassGroup, b_limit)
@@ -142,6 +152,9 @@ func evalOptimized(identity, h *ClassGroup, B *big.Int, T, k, l int, C map[int]*
 			///TODO: carefully check big.Int to int64 value conversion...might cause serious issues later
 			b := getBlock(i*l+j, k, T, B).Int64()
 			ys[b] = ys[b].Multiply(C[i*k*l])
+			if ys[b] == nil {
+				return nil
+			}
 		}
 
 		//for b1 in range(0, pow(2, k1)):
@@ -151,10 +164,20 @@ func evalOptimized(identity, h *ClassGroup, B *big.Int, T, k, l int, C map[int]*
 			for b0 := 0; b0 < int(math.Pow(float64(2), float64((k0)))); b0++ {
 				//z *= ys[b1 * pow(2, k0) + b0]
 				z = z.Multiply(ys[int64(b1)*int64(math.Pow(float64(2), float64(k0)))+int64(b0)])
+				if z == nil {
+					return nil
+				}
 			}
 
 			//x *= pow(z, b1 * pow(2, k0))
-			x = x.Multiply(z.Pow(int64(b1) * int64(math.Pow(float64(2), float64(k0)))))
+			c := z.Pow(int64(b1) * int64(math.Pow(float64(2), float64(k0))))
+			if c == nil {
+				return nil
+			}
+			x = x.Multiply(c)
+			if x == nil {
+				return nil
+			}
 		}
 
 		//for b0 in range(0, pow(2, k0)):
@@ -164,10 +187,19 @@ func evalOptimized(identity, h *ClassGroup, B *big.Int, T, k, l int, C map[int]*
 			for b1 := 0; b1 < int(math.Pow(float64(2), float64(k1))); b1++ {
 				//z *= ys[b1 * pow(2, k0) + b0]
 				z = z.Multiply(ys[int64(b1)*int64(math.Pow(float64(2), float64(k0)))+int64(b0)])
+				if z == nil {
+					return nil
+				}
 			}
 			//x *= pow(z, b0)
-			x = x.Multiply(z.Pow(int64(b0)))
-
+			d := z.Pow(int64(b0))
+			if d == nil {
+				return nil
+			}
+			x = x.Multiply(d)
+			if x == nil {
+				return nil
+			}
 		}
 	}
 
@@ -203,6 +235,10 @@ func calculateVDF(discriminant *big.Int, x *ClassGroup, iterations, int_size_bit
 
 	powers := iterateSquarings(x, powers_to_calculate)
 
+	if powers == nil {
+		return nil, nil
+	}
+
 	y = powers[iterations]
 
 	identity := IdentityForDiscriminant(discriminant)
@@ -224,9 +260,17 @@ func verifyProof(x, y, proof *ClassGroup, T int) bool {
 	r := new(big.Int).Exp(big.NewInt(2), big.NewInt(int64(T)), B)
 
 	piB := proof.BigPow(B)
-	xR := x.BigPow(r)
+	if piB == nil {
+		return false
+	}
 
-	if piB.Multiply(xR).Equal(y) {
+	xR := x.BigPow(r)
+	if xR == nil {
+		return false
+	}
+
+	z := piB.Multiply(xR)
+	if (z != nil) && (z.Equal(y)) {
 		return true
 	} else {
 		return false

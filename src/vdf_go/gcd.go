@@ -1,7 +1,6 @@
 package vdf_go
 
 import (
-	"fmt"
 	"math/big"
 )
 
@@ -72,7 +71,7 @@ func allInputValueGCD(a, b *big.Int) (r *big.Int) {
 
 //Solve ax == b mod m for x.
 //Return s, t where x = s + k * t for integer k yields all solutions.
-func SolveMod(a, b, m *big.Int) (s, t *big.Int) {
+func SolveMod(a, b, m *big.Int) (s, t *big.Int, solvable bool) {
 	//g, d, e = extended_gcd(a, m)
 	//TODO: golang 1.x big.int GCD requires both a > 0 and m > 0, so we can't use it :(
 	//d := big.NewInt(0)
@@ -88,7 +87,8 @@ func SolveMod(a, b, m *big.Int) (s, t *big.Int) {
 	//TODO: replace with utils.GetLogInstance().Error(...)
 	//if r != 0:
 	if r.Cmp(big.NewInt(0)) != 0 {
-		panic(fmt.Sprintf("no solution to %s x = %s mod %s", a.String(), b.String(), m.String()))
+		//panic(fmt.Sprintf("no solution to %s x = %s mod %s", a.String(), b.String(), m.String()))
+		return nil, nil, false
 	}
 
 	//assert b == q * g
@@ -96,5 +96,5 @@ func SolveMod(a, b, m *big.Int) (s, t *big.Int) {
 	q.Mul(q, d)
 	s = q.Mod(q, m)
 	t = floorDivision(m, g)
-	return s, t
+	return s, t, true
 }
