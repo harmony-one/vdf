@@ -49,10 +49,11 @@ func EntropyFromSeed(seed []byte, byte_count int) []byte {
 	bufferSize := 0
 
 	extra := uint16(0)
+	bytes := make([]byte, len(seed)+2)
+	copy(bytes, seed)
 	for bufferSize <= byte_count {
-		extra_bits := make([]byte, 2)
-		binary.BigEndian.PutUint16(extra_bits, extra)
-		more_entropy := sha256.Sum256(append(seed, extra_bits...)[:])
+		binary.BigEndian.PutUint16(bytes[len(seed):], extra)
+		more_entropy := sha256.Sum256(bytes)
 		buffer.Write(more_entropy[:])
 		bufferSize += sha256.Size
 		extra += 1
