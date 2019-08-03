@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"testing"
+	"time"
 
 	"github.com/harmony-one/vdf/src/vdf_go"
 	"github.com/stretchr/testify/assert"
@@ -107,4 +108,18 @@ func TestRandomInput(t *testing.T) {
 		y_buf, proof_buf := vdf_go.GenerateVDF(seed, T, 2048)
 		assert.Equal(t, true, vdf_go.VerifyVDF(seed, append(y_buf, proof_buf...), T, 2048), "failed when T = %d", T)
 	}
+}
+
+func TestInterruptibleGenerator(t *testing.T) {
+	seed := []byte{0xde, 0xad, 0xbe, 0xef}
+
+	stop := make(chan struct{})
+	go func() {
+		time.Sleep(time.Second)
+		stop <- struct{}{}
+	}()
+	y_buf, proof_buf := vdf_go.GenerateVDFWithStopChan(seed, 10000, 2048, stop)
+
+	assert.Nil(t, y_buf, "iterrupted y is nil")
+	assert.Nil(t, proof_buf, "iterrupted proof is nil")
 }
