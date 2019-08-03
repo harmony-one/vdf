@@ -38,7 +38,7 @@ func approximateParameters(T int) (int, int, int) {
 	return L, k, w
 }
 
-func iterateSquarings(x *ClassGroup, powers_to_calculate []int) map[int]*ClassGroup {
+func iterateSquarings(x *ClassGroup, powers_to_calculate []int, stop <-chan struct{}) map[int]*ClassGroup {
 	powers_calculated := make(map[int]*ClassGroup)
 
 	previous_power := 0
@@ -55,18 +55,28 @@ func iterateSquarings(x *ClassGroup, powers_to_calculate []int) map[int]*ClassGr
 
 		previous_power = current_power
 		powers_calculated[current_power] = currX
+
+		select {
+		case <-stop:
+			return nil
+		default:
+		}
 	}
 
 	return powers_calculated
 }
 
 func GenerateVDF(seed []byte, iterations, int_size_bits int) ([]byte, []byte) {
+	return GenerateVDFWithStopChan(seed, iterations, int_size_bits, nil)
+}
+
+func GenerateVDFWithStopChan(seed []byte, iterations, int_size_bits int, stop <-chan struct{}) ([]byte, []byte) {
 	defer timeTrack(time.Now())
 
 	D := CreateDiscriminant(seed, int_size_bits)
 	x := NewClassGroupFromAbDiscriminant(big.NewInt(2), big.NewInt(1), D)
 
-	y, proof := calculateVDF(D, x, iterations, int_size_bits)
+	y, proof := calculateVDF(D, x, iterations, int_size_bits, stop)
 
 	if (y == nil) || (proof == nil) {
 		return nil, nil
@@ -221,7 +231,7 @@ func generateProof(identity, x, y *ClassGroup, T, k, l int, powers map[int]*Clas
 	return proof
 }
 
-func calculateVDF(discriminant *big.Int, x *ClassGroup, iterations, int_size_bits int) (y, proof *ClassGroup) {
+func calculateVDF(discriminant *big.Int, x *ClassGroup, iterations, int_size_bits int, stop <-chan struct{}) (y, proof *ClassGroup) {
 	L, k, _ := approximateParameters(iterations)
 
 	loopCount := int(math.Ceil(float64(iterations) / float64(k*L)))
@@ -233,7 +243,7 @@ func calculateVDF(discriminant *big.Int, x *ClassGroup, iterations, int_size_bit
 
 	powers_to_calculate[loopCount+1] = iterations
 
-	powers := iterateSquarings(x, powers_to_calculate)
+	powers := iterateSquarings(x, powers_to_calculate, stop)
 
 	if powers == nil {
 		return nil, nil
