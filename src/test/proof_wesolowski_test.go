@@ -43,6 +43,18 @@ func TestVerifyProofSharedMemory(t *testing.T) {
 	assert.Equal(t, true, vdf_go.VerifyVDF(output[:len(seed)], output[len(seed):], 10, 2048), "must be true")
 }
 
+func TestGenerateAndVerifyIntSize(t *testing.T) {
+	seed := []byte{0xde, 0xad, 0xbe, 0xef}
+
+	for i := 1; i < 20; i++ {
+		int_size_bits := 2058 - i
+		iteration := i * 3
+		y_buf, proof_buf := vdf_go.GenerateVDF(seed, iteration, int_size_bits)
+		assert.Equal(t, true, vdf_go.VerifyVDF(seed, append(y_buf, proof_buf...), iteration, int_size_bits),
+			"failed with int_size_bits = %d and iteration = %d", int_size_bits, iteration)
+	}
+}
+
 func TestGenerateAndVerifyProof(t *testing.T) {
 	seed := []byte{0xde, 0xad, 0xbe, 0xef}
 
