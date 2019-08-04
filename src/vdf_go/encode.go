@@ -2,36 +2,71 @@ package vdf_go
 
 import "math/big"
 
-//inplace encoding using two's complementary
-func two_s_complement_encoding(buf []byte, bytes_size int) []byte {
-	//two's complement carry
-	var carry uint8 = 1
+var bigOne = big.NewInt(1)
 
-	//use one additional byte for signing
-	for i := len(buf) - 1; i >= len(buf)-bytes_size; i-- {
-		thisdigit := uint8(buf[i])
-		thisdigit = thisdigit ^ 0xff
+func decodeTwosComplement(bytes []byte) *big.Int {
+	if bytes[0]&0x80 == 0 {
+		// non-negative
+		return new(big.Int).SetBytes(bytes)
+	}
+	setyb := make([]byte, len(bytes))
+	for i := range bytes {
+		setyb[i] = bytes[i] ^ 0xff
+	}
+	n := new(big.Int).SetBytes(setyb)
+	return n.Sub(n.Neg(n), bigOne)
+}
 
-		if thisdigit == 0xff {
-			if carry == 1 {
-				thisdigit = 0
-				carry = 1
-			} else {
-				carry = 0
-			}
-		} else {
-			thisdigit = thisdigit + carry
-			carry = 0
+func encodeTwosComplement(n *big.Int) []byte {
+	if n.Sign() > 0 {
+		bytes := n.Bytes()
+		if bytes[0]&0x80 == 0 {
+			return bytes
 		}
-
-		buf[i] = thisdigit
+		// add one more byte for positive sign
+		buf := make([]byte, len(bytes)+1)
+		copy(buf[1:], bytes)
+		return buf
 	}
-
-	//put all remaining leading bytes to 0
-	for i := len(buf) - bytes_size - 1; i >= 0; i-- {
-		buf[i] = 0xff
+	if n.Sign() < 0 {
+		// A negative number has to be converted to two's-complement form. So we
+		// invert and subtract 1. If the most-significant-bit isn't set then
+		// we'll need to pad the beginning with 0xff in order to keep the number
+		// negative.
+		nMinus1 := new(big.Int).Neg(n)
+		nMinus1.Sub(nMinus1, bigOne)
+		bytes := nMinus1.Bytes()
+		if len(bytes) == 0 {
+			// sneaky -1 value
+			return []byte{0xff}
+		}
+		for i := range bytes {
+			bytes[i] ^= 0xff
+		}
+		if bytes[0]&0x80 != 0 {
+			return bytes
+		}
+		// add one more byte for negative sign
+		buf := make([]byte, len(bytes)+1)
+		buf[0] = 0xff
+		copy(buf[1:], bytes)
+		return buf
 	}
+	return []byte{}
+}
 
+func signBitFill(bytes []byte, targetLen int) []byte {
+	if len(bytes) >= targetLen {
+		return bytes
+	}
+	buf := make([]byte, targetLen)
+	offset := targetLen - len(bytes)
+	if bytes[0]&0x80 != 0 {
+		for i := 0; i < offset; i++ {
+			buf[i] = 0xff
+		}
+	}
+	copy(buf[offset:], bytes)
 	return buf
 }
 
@@ -39,14 +74,5 @@ func EncodeBigIntBigEndian(a *big.Int) []byte {
 	int_size_bits := a.BitLen()
 	int_size := (int_size_bits + 16) >> 3
 
-	buf := make([]byte, int_size)
-	a_bytes := a.Bytes()
-	copy(buf[int_size-len(a_bytes):], a_bytes)
-
-	//encode the negative number
-	if a.Sign() == -1 {
-		two_s_complement_encoding(buf, len(a_bytes))
-	}
-
-	return buf
+	return signBitFill(encodeTwosComplement(a), int_size)
 }
