@@ -40,27 +40,8 @@ func NewClassGroupFromBytesDiscriminant(buf []byte, discriminant *big.Int) (*Cla
 		return nil, false
 	}
 
-	a := new(big.Int)
-
-	//if a is a negative number
-	if buf[0]&0x8 != 0 {
-		two_s_complement_encoding(buf[:int_size], int_size)
-		a.SetBytes(buf[1:int_size])
-		a = new(big.Int).Neg(a)
-	} else {
-		a.SetBytes(buf[1:int_size])
-	}
-
-	b := new(big.Int)
-
-	//if a is a negative number
-	if buf[int_size] != 0 {
-		two_s_complement_encoding(buf[int_size:], int_size)
-		b.SetBytes(buf[int_size+1 : 2*int_size])
-		b = new(big.Int).Neg(b)
-	} else {
-		b.SetBytes(buf[int_size+1 : 2*int_size])
-	}
+	a := decodeTwosComplement(buf[:int_size])
+	b := decodeTwosComplement(buf[int_size:])
 
 	return NewClassGroupFromAbDiscriminant(a, b, discriminant), true
 }
@@ -378,63 +359,18 @@ func (group *ClassGroup) SquareUsingMultiply() *ClassGroup {
 	return NewClassGroup(a3, b3, c3).Reduced()
 }
 
-//encoding for a, b based on discriminant's size
-//encoding using two's complement for a, b
-//the first byte is sign, if a < 0, buf[0] = 0xff else buf[0] = 0
+// Serialize encodes a, b based on discriminant's size
+// using one more byte for sign if nessesary
 func (group *ClassGroup) Serialize() []byte {
 	r := group.Reduced()
 	int_size_bits := group.Discriminant().BitLen()
 	int_size := (int_size_bits + 16) >> 4
 
-	buf := make([]byte, int_size)
-	a_bytes := r.a.Bytes()
-	copy(buf[int_size-len(a_bytes):], a_bytes)
+	buf := make([]byte, int_size*2)
+	copy(buf[:int_size], signBitFill(encodeTwosComplement(r.a), int_size))
+	copy(buf[int_size:], signBitFill(encodeTwosComplement(r.b), int_size))
 
-	//encode the negative number
-	if r.a.Sign() == -1 {
-		two_s_complement_encoding(buf, len(a_bytes))
-	}
-
-	buf2 := make([]byte, int_size)
-	b_bytes := r.b.Bytes()
-	copy(buf2[int_size-len(b_bytes):], b_bytes)
-
-	//encode the negative number
-	if r.b.Sign() == -1 {
-		two_s_complement_encoding(buf2, len(b_bytes))
-	}
-
-	return append(buf, buf2...)
-}
-
-//encoding for a, b based on discriminant's size
-//the first byte is sign, if a < 0, buf[0] = 1 else buf[0] = 0
-func (group *ClassGroup) Serialize2() []byte {
-	r := group.Reduced()
-	int_size_bits := group.Discriminant().BitLen()
-
-	//add additional one byte for sign
-	int_size := (int_size_bits + 16) >> 4
-
-	buf := make([]byte, int_size)
-	a_bytes := r.a.Bytes()
-	copy(buf[int_size-len(a_bytes):], a_bytes)
-
-	//encode the negative number
-	if r.a.Sign() == -1 {
-		two_s_complement_encoding(buf, len(a_bytes))
-	}
-
-	buf2 := make([]byte, int_size)
-	b_bytes := r.b.Bytes()
-	copy(buf2[int_size-len(b_bytes):], b_bytes)
-
-	//encode the negative number
-	if r.b.Sign() == -1 {
-		two_s_complement_encoding(buf2, len(b_bytes))
-	}
-
-	return append(buf, buf2...)
+	return buf
 }
 
 func (group *ClassGroup) Equal(other *ClassGroup) bool {
