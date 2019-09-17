@@ -4,14 +4,15 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"log"
 	"math/big"
 	"regexp"
 	"runtime"
 	"testing"
 	"time"
+
 	"github.com/harmony-one/vdf/src/vdf_go"
+	"github.com/stretchr/testify/assert"
 )
 
 func RepeatedSquare(x *vdf_go.ClassGroup, k int) *vdf_go.ClassGroup {
@@ -38,6 +39,7 @@ func TestTwoSquarePerformance(t *testing.T) {
 	for k := 0; k < 10; k++ {
 		seed := make([]byte, 32)
 		rand.Read(seed)
+		vdf_go.Init()
 		D := vdf_go.CreateDiscriminant(seed, 2048)
 		x := vdf_go.NewClassGroupFromAbDiscriminant(big.NewInt(2), big.NewInt(1), D)
 
