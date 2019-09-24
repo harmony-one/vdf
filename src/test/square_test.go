@@ -39,7 +39,7 @@ func TestTwoSquarePerformance(t *testing.T) {
 	for k := 0; k < 10; k++ {
 		seed := make([]byte, 32)
 		rand.Read(seed)
-		vdf_go.Init()
+
 		D := vdf_go.CreateDiscriminant(seed, 2048)
 		x := vdf_go.NewClassGroupFromAbDiscriminant(big.NewInt(2), big.NewInt(1), D)
 
