@@ -24,7 +24,6 @@ func TestEntropyFromSeed(t *testing.T) {
 
 func TestDiscriminant(t *testing.T) {
 	seed := []byte{0xab, 0xcd}
-	vdf_go.Init()
 	n := vdf_go.CreateDiscriminant(seed, 2048)
 	s := fmt.Sprintf("%02x", vdf_go.EncodeBigIntBigEndian(n))
 	assert.Equal(t, "ffff550d4074f264c4db9fb6c4af4e4a1aa6d700b3cf3601388d37aea312fc9b512581a8fa6f3575ae3d34c6b12401838da34360678a2f43178c43c96a46a2bd682db7fa63085c1a65053e738b158efdc4d952c549e6891d87d2de794132869bb5cefcf28193359f182358692be7b864413ee985893565046cc165994fb18f49ca75a8ec65ba1ef7450c53210943fde31c5c553f882b5fdadd8f3c1baa85309b68bd02ba526d8a1aabe5dc0aaa483d0fe230e5c6c6165d7d79184646e2909076b0eea3926a9b17f184b61588c90e5175e3a99ab343bb97859c0cde75a607a6e46a94f95580521f8ebaeeb58e587b39434a218dbcecc5cd365932926990c84c84fe29", s, "they should be equal")

@@ -74,3 +74,4 @@ func TestVDFModuleRandomSeed(t *testing.T) {
 	assert.Equal(t, true, vdf.Verify(output), "failed verifying proof")
 
 }
+

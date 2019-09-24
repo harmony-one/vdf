@@ -12,41 +12,7 @@ type Pair struct {
 	q int64
 }
 
-var odd_primes = primeLessThanN(1 << 16)
 var m = 8 * 3 * 5 * 7 * 11 * 13
-var residues = make([]int, 0, m)
-var sieve_info = make([]Pair, 0, len(odd_primes))
-var isLibraryReady = false
-
-func Init() {
-	if !isLibraryReady {
-		for x := 7; x < m; x += 8 {
-			if (x%3 != 0) && (x%5 != 0) && (x%7 != 0) && (x%11 != 0) && (x%13 != 0) {
-				residues = append(residues, x)
-			}
-		}
-
-		var odd_primes_above_13 = odd_primes[5:]
-
-		for i := 0; i < len(odd_primes_above_13); i++ {
-			prime := int64(odd_primes_above_13[i])
-			sieve_info = append(sieve_info, Pair{p: int64(prime), q: modExp(int64(m)%prime, prime-2, prime)})
-		}
-		isLibraryReady = true
-	}
-}
-
-func modExp(base, exponent, modulus int64) int64 {
-	if modulus == 1 {
-		return 0
-	}
-	base = base % modulus
-	result := int64(1)
-	for i := int64(0); i < exponent; i++ {
-		result = (result * base) % modulus
-	}
-	return result
-}
 
 func EntropyFromSeed(seed []byte, byte_count int) []byte {
 	buffer := bytes.Buffer{}
