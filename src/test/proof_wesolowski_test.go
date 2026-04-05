@@ -56,6 +56,8 @@ func TestGenerateAndVerifyIntSize(t *testing.T) {
 }
 
 func TestGenerateAndVerifyProof(t *testing.T) {
+	skipIfShort(t, "skipping exhaustive proof generation sweep in -short mode")
+
 	seed := []byte{0xde, 0xad, 0xbe, 0xef}
 
 	for T := 5; T < 100; T++ {
@@ -65,6 +67,8 @@ func TestGenerateAndVerifyProof(t *testing.T) {
 }
 
 func TestGenerateAndVerifyProof100(t *testing.T) {
+	skipIfShort(t, "skipping target 100..199 sweep in -short mode")
+
 	seed := []byte{0xde, 0xad, 0xbe, 0xef}
 
 	for T := 101; T < 200; T++ {
@@ -74,6 +78,8 @@ func TestGenerateAndVerifyProof100(t *testing.T) {
 }
 
 func TestGenerateAndVerifyProof200(t *testing.T) {
+	skipIfShort(t, "skipping target 200..299 sweep in -short mode")
+
 	seed := []byte{0xde, 0xad, 0xbe, 0xef}
 
 	for T := 201; T < 300; T++ {
@@ -83,6 +89,8 @@ func TestGenerateAndVerifyProof200(t *testing.T) {
 }
 
 func TestGenerateAndVerifyProof300(t *testing.T) {
+	skipIfShort(t, "skipping target 300..399 sweep in -short mode")
+
 	seed := []byte{0xde, 0xad, 0xbe, 0xef}
 
 	for T := 301; T < 400; T++ {
@@ -92,6 +100,8 @@ func TestGenerateAndVerifyProof300(t *testing.T) {
 }
 
 func TestGenerateAndVerifyProof400(t *testing.T) {
+	skipIfShort(t, "skipping target 400..499 sweep in -short mode")
+
 	seed := []byte{0xde, 0xad, 0xbe, 0xef}
 
 	for T := 401; T < 500; T++ {
@@ -101,6 +111,8 @@ func TestGenerateAndVerifyProof400(t *testing.T) {
 }
 
 func TestGenerateAndVerifyProof1000(t *testing.T) {
+	skipIfShort(t, "skipping target 1000 sweep in -short mode")
+
 	seed := []byte{0xde, 0xad, 0xbe, 0xef}
 
 	for T := 1001; T < 1010; T++ {
@@ -110,6 +122,7 @@ func TestGenerateAndVerifyProof1000(t *testing.T) {
 }
 
 func TestRandomInput(t *testing.T) {
+	skipIfShort(t, "skipping randomized long-running vectors in -short mode")
 
 	for i := 0; i < 5; i++ {
 		seed := make([]byte, 32)
@@ -123,6 +136,8 @@ func TestRandomInput(t *testing.T) {
 }
 
 func TestInterruptibleGenerator(t *testing.T) {
+	skipIfShort(t, "skipping interruptible generator timing test in -short mode")
+
 	seed := []byte{0xde, 0xad, 0xbe, 0xef}
 
 	stop := make(chan struct{})

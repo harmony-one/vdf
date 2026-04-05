@@ -36,6 +36,8 @@ func RepeatedSquareSlow(x *vdf_go.ClassGroup, k int) *vdf_go.ClassGroup {
 }
 
 func TestTwoSquarePerformance(t *testing.T) {
+	skipIfShort(t, "skipping square performance comparison in -short mode")
+
 	for k := 0; k < 10; k++ {
 		seed := make([]byte, 32)
 		rand.Read(seed)
