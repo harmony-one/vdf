@@ -5,16 +5,17 @@ import (
 	"encoding/csv"
 	"encoding/hex"
 	"fmt"
+	"github.com/harmony-one/vdf/src/vdf_go"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"log"
 	"os"
 	"strconv"
 	"testing"
-	"github.com/harmony-one/vdf/src/vdf_go"
 )
 
 func TestCreateProofCSV(t *testing.T) {
+	skipIfShort(t, "skipping CSV proof generation in -short mode")
 
 	csvFile, _ := os.Open("wesolowski.csv")
 	reader := csv.NewReader(bufio.NewReader(csvFile))
@@ -39,6 +40,7 @@ func TestCreateProofCSV(t *testing.T) {
 }
 
 func TestVerifyProofCSV(t *testing.T) {
+	skipIfShort(t, "skipping CSV proof verification in -short mode")
 
 	csvFile, _ := os.Open("wesolowski.csv")
 	reader := csv.NewReader(bufio.NewReader(csvFile))
