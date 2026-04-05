@@ -70,6 +70,20 @@ func signBitFill(bytes []byte, targetLen int) []byte {
 	return buf
 }
 
+func fillTwosComplement(dst []byte, n *big.Int) {
+	encoded := encodeTwosComplement(n)
+	fill := byte(0)
+	if len(encoded) > 0 && encoded[0]&0x80 != 0 {
+		fill = 0xff
+	}
+
+	padding := len(dst) - len(encoded)
+	for i := 0; i < padding; i++ {
+		dst[i] = fill
+	}
+	copy(dst[padding:], encoded)
+}
+
 func EncodeBigIntBigEndian(a *big.Int) []byte {
 	int_size_bits := a.BitLen()
 	int_size := (int_size_bits + 16) >> 3

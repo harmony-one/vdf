@@ -3,18 +3,23 @@ package vdf_go
 import (
 	"crypto/sha256"
 	"encoding/binary"
-	"fmt"
 	"log"
 	"math"
 	"math/big"
 	"regexp"
 	"runtime"
-	"sort"
+	"sync/atomic"
 	"time"
 )
 
-//Creates L and k parameters from papers, based on how many iterations need to be
-//performed, and how much memory should be used.
+var (
+	timingEnabled     atomic.Bool
+	runtimeFuncNameRE = regexp.MustCompile(`^.*\.(.*)$`)
+	primePrefix       = []byte("prime")
+)
+
+// Creates L and k parameters from papers, based on how many iterations need to be
+// performed, and how much memory should be used.
 func approximateParameters(T int) (int, int, int) {
 	//log_memory = math.log(10000000, 2)
 	log_memory := math.Log(10000000) / math.Log(2)
@@ -38,32 +43,59 @@ func approximateParameters(T int) (int, int, int) {
 	return L, k, w
 }
 
-func iterateSquarings(x *ClassGroup, powers_to_calculate []int, stop <-chan struct{}) map[int]*ClassGroup {
-	powers_calculated := make(map[int]*ClassGroup)
-
-	previous_power := 0
-	currX := CloneClassGroup(x)
-	sort.Ints(powers_to_calculate)
-	for _, current_power := range powers_to_calculate {
-
-		for i := 0; i < current_power-previous_power; i++ {
-			currX = currX.Pow(2)
-			if currX == nil {
+func repeatedSquare(x *ClassGroup, count int, stop <-chan struct{}) *ClassGroup {
+	if stop == nil {
+		for i := 0; i < count; i++ {
+			x = x.Square()
+			if x == nil {
 				return nil
 			}
 		}
 
-		previous_power = current_power
-		powers_calculated[current_power] = currX
+		return x
+	}
 
+	for i := 0; i < count; i++ {
 		select {
 		case <-stop:
 			return nil
 		default:
 		}
+
+		x = x.Square()
+		if x == nil {
+			return nil
+		}
 	}
 
-	return powers_calculated
+	return x
+}
+
+func iterateSquarings(x *ClassGroup, step, iterations int, stop <-chan struct{}) ([]*ClassGroup, *ClassGroup) {
+	if iterations <= 0 {
+		return []*ClassGroup{x}, x
+	}
+
+	loopCount := int(math.Ceil(float64(iterations) / float64(step)))
+	powersCalculated := make([]*ClassGroup, loopCount)
+	powersCalculated[0] = x
+
+	currX := x
+	for i := 1; i < loopCount; i++ {
+		currX = repeatedSquare(currX, step, stop)
+		if currX == nil {
+			return nil, nil
+		}
+		powersCalculated[i] = currX
+	}
+
+	remaining := iterations - (loopCount-1)*step
+	y := repeatedSquare(currX, remaining, stop)
+	if y == nil {
+		return nil, nil
+	}
+
+	return powersCalculated, y
 }
 
 func GenerateVDF(seed []byte, iterations, int_size_bits int) ([]byte, []byte) {
@@ -71,7 +103,9 @@ func GenerateVDF(seed []byte, iterations, int_size_bits int) ([]byte, []byte) {
 }
 
 func GenerateVDFWithStopChan(seed []byte, iterations, int_size_bits int, stop <-chan struct{}) ([]byte, []byte) {
-	defer timeTrack(time.Now())
+	if timingEnabled.Load() {
+		defer timeTrack(time.Now())
+	}
 
 	D := CreateDiscriminant(seed, int_size_bits)
 	x := NewClassGroupFromAbDiscriminant(big.NewInt(2), big.NewInt(1), D)
@@ -86,31 +120,24 @@ func GenerateVDFWithStopChan(seed []byte, iterations, int_size_bits int, stop <-
 }
 
 func VerifyVDF(seed, proof_blob []byte, iterations, int_size_bits int) bool {
-	defer timeTrack(time.Now())
+	if timingEnabled.Load() {
+		defer timeTrack(time.Now())
+	}
 
-	int_size := (int_size_bits + 16) >> 4
-
-	D := CreateDiscriminant(seed, int_size_bits)
-	x := NewClassGroupFromAbDiscriminant(big.NewInt(2), big.NewInt(1), D)
-	y, _ := NewClassGroupFromBytesDiscriminant(proof_blob[:(2*int_size)], D)
-	proof, _ := NewClassGroupFromBytesDiscriminant(proof_blob[2*int_size:], D)
-
-	return verifyProof(x, y, proof, iterations)
+	return verifyProofBlob(newVerifierState(seed, int_size_bits), proof_blob, iterations)
 }
 
 // Creates a random prime based on input x, y
 func hashPrime(x, y []byte) *big.Int {
-	var j uint64 = 0
-
-	jBuf := make([]byte, 8)
+	var j uint64
+	buf := make([]byte, len(primePrefix)+8+len(x)+len(y))
+	copy(buf, primePrefix)
+	copy(buf[len(primePrefix)+8:], x)
+	copy(buf[len(primePrefix)+8+len(x):], y)
 	z := new(big.Int)
 	for {
-		binary.BigEndian.PutUint64(jBuf, j)
-		s := append([]byte("prime"), jBuf...)
-		s = append(s, x...)
-		s = append(s, y...)
-
-		checkSum := sha256.Sum256(s[:])
+		binary.BigEndian.PutUint64(buf[len(primePrefix):], j)
+		checkSum := sha256.Sum256(buf)
 		z.SetBytes(checkSum[:16])
 
 		if z.ProbablyPrime(1) {
@@ -123,64 +150,60 @@ func hashPrime(x, y []byte) *big.Int {
 
 // Get's the ith block of  2^T // B
 // such that sum(get_block(i) * 2^ki) = t^T // B
-func getBlock(i, k, T int, B *big.Int) *big.Int {
-	//(pow(2, k) * pow(2, T - k * (i + 1), B)) // B
-	p1 := big.NewInt(int64(math.Pow(2, float64(k))))
-	p2 := new(big.Int).Exp(big.NewInt(2), big.NewInt(int64(T-k*(i+1))), B)
-	return floorDivision(new(big.Int).Mul(p1, p2), B)
+func getBlock(i, k, T int, B, twoPowK *big.Int) *big.Int {
+	p2 := new(big.Int).Exp(bigTwoValue, big.NewInt(int64(T-k*(i+1))), B)
+	p2.Mul(p2, twoPowK)
+	return p2.Quo(p2, B)
 }
 
-//Optimized evalutation of h ^ (2^T // B)
-func evalOptimized(identity, h *ClassGroup, B *big.Int, T, k, l int, C map[int]*ClassGroup) *ClassGroup {
+// Optimized evalutation of h ^ (2^T // B)
+func evalOptimized(identity, h *ClassGroup, B *big.Int, T, k, l int, C []*ClassGroup) *ClassGroup {
 	//k1 = k//2
 	var k1 int = k / 2
 	k0 := k - k1
+	outerIterations := int(math.Ceil(float64(T) / float64(k*l)))
+	bLimit := 1 << uint(k)
+	b1Limit := 1 << uint(k1)
+	b0Limit := 1 << uint(k0)
+	b0Stride := int64(b0Limit)
+	twoPowK := new(big.Int).Lsh(new(big.Int).Set(bigOne), uint(k))
 
 	//x = identity
-	x := CloneClassGroup(identity)
+	x := identity
+	ys := make([]*ClassGroup, bLimit)
 
 	for j := l - 1; j > -1; j-- {
-		//x = pow(x, pow(2, k))
-		b_limit := int64(math.Pow(2, float64(k)))
-		x = x.Pow(b_limit)
+		x = repeatedSquare(x, k, nil)
 		if x == nil {
 			return nil
 		}
 
-		//ys = {}
-		ys := make([]*ClassGroup, b_limit)
-		for b := int64(0); b < b_limit; b++ {
+		for b := range ys {
 			ys[b] = identity
 		}
 
-		//for i in range(0, math.ceil((T)/(k*l))):
-		for i := 0; i < int(math.Ceil(float64(T)/float64(k*l))); i++ {
+		for i := 0; i < outerIterations; i++ {
 			if T-k*(i*l+j+1) < 0 {
 				continue
 			}
 
-			///TODO: carefully check big.Int to int64 value conversion...might cause serious issues later
-			b := getBlock(i*l+j, k, T, B).Int64()
-			ys[b] = ys[b].Multiply(C[i*k*l])
+			b := int(getBlock(i*l+j, k, T, B, twoPowK).Int64())
+			ys[b] = ys[b].Multiply(C[i])
 			if ys[b] == nil {
 				return nil
 			}
 		}
 
-		//for b1 in range(0, pow(2, k1)):
-		for b1 := 0; b1 < int(math.Pow(float64(2), float64(k1))); b1++ {
+		for b1 := 0; b1 < b1Limit; b1++ {
 			z := identity
-			//for b0 in range(0, pow(2, k0)):
-			for b0 := 0; b0 < int(math.Pow(float64(2), float64((k0)))); b0++ {
-				//z *= ys[b1 * pow(2, k0) + b0]
-				z = z.Multiply(ys[int64(b1)*int64(math.Pow(float64(2), float64(k0)))+int64(b0)])
+			for b0 := 0; b0 < b0Limit; b0++ {
+				z = z.Multiply(ys[b1*b0Limit+b0])
 				if z == nil {
 					return nil
 				}
 			}
 
-			//x *= pow(z, b1 * pow(2, k0))
-			c := z.Pow(int64(b1) * int64(math.Pow(float64(2), float64(k0))))
+			c := z.Pow(int64(b1) * b0Stride)
 			if c == nil {
 				return nil
 			}
@@ -190,18 +213,14 @@ func evalOptimized(identity, h *ClassGroup, B *big.Int, T, k, l int, C map[int]*
 			}
 		}
 
-		//for b0 in range(0, pow(2, k0)):
-		for b0 := 0; b0 < int(math.Pow(float64(2), float64(k0))); b0++ {
+		for b0 := 0; b0 < b0Limit; b0++ {
 			z := identity
-			//for b1 in range(0, pow(2, k1)):
-			for b1 := 0; b1 < int(math.Pow(float64(2), float64(k1))); b1++ {
-				//z *= ys[b1 * pow(2, k0) + b0]
-				z = z.Multiply(ys[int64(b1)*int64(math.Pow(float64(2), float64(k0)))+int64(b0)])
+			for b1 := 0; b1 < b1Limit; b1++ {
+				z = z.Multiply(ys[b1*b0Limit+b0])
 				if z == nil {
 					return nil
 				}
 			}
-			//x *= pow(z, b0)
 			d := z.Pow(int64(b0))
 			if d == nil {
 				return nil
@@ -216,8 +235,8 @@ func evalOptimized(identity, h *ClassGroup, B *big.Int, T, k, l int, C map[int]*
 	return x
 }
 
-//generate y = x ^ (2 ^T) and pi
-func generateProof(identity, x, y *ClassGroup, T, k, l int, powers map[int]*ClassGroup) *ClassGroup {
+// generate y = x ^ (2 ^T) and pi
+func generateProof(identity, x, y *ClassGroup, T, k, l int, powers []*ClassGroup) *ClassGroup {
 	//x_s = x.serialize()
 	x_s := x.Serialize()
 
@@ -234,22 +253,10 @@ func generateProof(identity, x, y *ClassGroup, T, k, l int, powers map[int]*Clas
 func calculateVDF(discriminant *big.Int, x *ClassGroup, iterations, int_size_bits int, stop <-chan struct{}) (y, proof *ClassGroup) {
 	L, k, _ := approximateParameters(iterations)
 
-	loopCount := int(math.Ceil(float64(iterations) / float64(k*L)))
-	powers_to_calculate := make([]int, loopCount+2)
-
-	for i := 0; i < loopCount+1; i++ {
-		powers_to_calculate[i] = i * k * L
-	}
-
-	powers_to_calculate[loopCount+1] = iterations
-
-	powers := iterateSquarings(x, powers_to_calculate, stop)
-
-	if powers == nil {
+	powers, y := iterateSquarings(x, k*L, iterations, stop)
+	if powers == nil || y == nil {
 		return nil, nil
 	}
-
-	y = powers[iterations]
 
 	identity := IdentityForDiscriminant(discriminant)
 
@@ -287,6 +294,10 @@ func verifyProof(x, y, proof *ClassGroup, T int) bool {
 	}
 }
 
+func SetTimingEnabled(enabled bool) {
+	timingEnabled.Store(enabled)
+}
+
 func timeTrack(start time.Time) {
 	elapsed := time.Since(start)
 
@@ -297,8 +308,7 @@ func timeTrack(start time.Time) {
 	funcObj := runtime.FuncForPC(pc)
 
 	// Regex to extract just the function name (and not the module path).
-	runtimeFunc := regexp.MustCompile(`^.*\.(.*)$`)
-	name := runtimeFunc.ReplaceAllString(funcObj.Name(), "$1")
+	name := runtimeFuncNameRE.ReplaceAllString(funcObj.Name(), "$1")
 
-	log.Println(fmt.Sprintf("%s took %s", name, elapsed))
+	log.Printf("%s took %s", name, elapsed)
 }

@@ -7,9 +7,10 @@ type VDF struct {
 	output     [516]byte
 	outputChan chan [516]byte
 	finished   bool
+	verifier   *verifierState
 }
 
-//size of long integers in quadratic function group
+// size of long integers in quadratic function group
 const sizeInBits = 2048
 
 // New create a new instance of VDF.
@@ -18,6 +19,7 @@ func New(difficulty int, input [32]byte) *VDF {
 		difficulty: difficulty,
 		input:      input,
 		outputChan: make(chan [516]byte),
+		verifier:   newVerifierState(input[:], sizeInBits),
 	}
 }
 
@@ -32,7 +34,13 @@ func (vdf *VDF) GetOutputChannel() chan [516]byte {
 func (vdf *VDF) Execute() {
 	vdf.finished = false
 
-	yBuf, proofBuf := GenerateVDF(vdf.input[:], vdf.difficulty, sizeInBits)
+	if vdf.verifier == nil {
+		vdf.verifier = newVerifierState(vdf.input[:], sizeInBits)
+	}
+
+	y, proof := calculateVDF(vdf.verifier.discriminant, vdf.verifier.base, vdf.difficulty, sizeInBits, nil)
+	yBuf := y.Serialize()
+	proofBuf := proof.Serialize()
 
 	copy(vdf.output[:], yBuf)
 	copy(vdf.output[258:], proofBuf)
@@ -47,7 +55,7 @@ func (vdf *VDF) Execute() {
 // Verify runs the verification of generated proof
 // currently on i7-6700K, verification takes about 350 ms
 func (vdf *VDF) Verify(proof [516]byte) bool {
-	return VerifyVDF(vdf.input[:], proof[:], vdf.difficulty, sizeInBits)
+	return verifyProofBlob(vdf.verifier, proof[:], vdf.difficulty)
 }
 
 // IsFinished returns whether the vdf execution is finished or not.

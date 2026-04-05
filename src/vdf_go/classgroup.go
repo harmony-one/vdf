@@ -4,6 +4,11 @@ import (
 	"math/big"
 )
 
+var (
+	bigTwoValue  = big.NewInt(2)
+	bigFourValue = big.NewInt(4)
+)
+
 type ClassGroup struct {
 	a *big.Int
 	b *big.Int
@@ -21,10 +26,11 @@ func NewClassGroup(a, b, c *big.Int) *ClassGroup {
 
 func NewClassGroupFromAbDiscriminant(a, b, discriminant *big.Int) *ClassGroup {
 	//z = b*b-discriminant
-	z := new(big.Int).Sub(new(big.Int).Mul(b, b), discriminant)
+	z := new(big.Int).Mul(b, b)
+	z.Sub(z, discriminant)
 
 	//z = z // 4a
-	c := floorDivision(z, new(big.Int).Mul(a, big.NewInt(4)))
+	c := floorDivision(z, new(big.Int).Lsh(new(big.Int).Set(a), 2))
 
 	return NewClassGroup(a, b, c)
 }
@@ -47,27 +53,32 @@ func NewClassGroupFromBytesDiscriminant(buf []byte, discriminant *big.Int) (*Cla
 }
 
 func IdentityForDiscriminant(d *big.Int) *ClassGroup {
-	return NewClassGroupFromAbDiscriminant(big.NewInt(1), big.NewInt(1), d)
+	c := new(big.Int).Sub(big.NewInt(1), d)
+	c.Rsh(c, 2)
+	return &ClassGroup{
+		a: big.NewInt(1),
+		b: big.NewInt(1),
+		c: c,
+	}
 }
 
 func (group *ClassGroup) Normalized() *ClassGroup {
+	if group.isNormalized() {
+		return group
+	}
+
 	a := new(big.Int).Set(group.a)
 	b := new(big.Int).Set(group.b)
 	c := new(big.Int).Set(group.c)
 
-	//if b > -a && b <= a:
-	if (b.Cmp(new(big.Int).Neg(a)) == 1) && (b.Cmp(a) < 1) {
-		return group
-	}
-
 	//r = (a - b) // (2 * a)
 	r := new(big.Int).Sub(a, b)
-	r = floorDivision(r, new(big.Int).Mul(a, big.NewInt(2)))
+	r = floorDivision(r, new(big.Int).Lsh(new(big.Int).Set(a), 1))
 
 	//b, c = b + 2 * r * a, a * r * r + b * r + c
-	t := new(big.Int).Mul(big.NewInt(2), r)
-	t.Mul(t, a)
 	oldB := new(big.Int).Set(b)
+	t := new(big.Int).Mul(r, a)
+	t.Lsh(t, 1)
 	b.Add(b, t)
 
 	x := new(big.Int).Mul(a, r)
@@ -80,6 +91,10 @@ func (group *ClassGroup) Normalized() *ClassGroup {
 }
 
 func (group *ClassGroup) Reduced() *ClassGroup {
+	if group.isReduced() {
+		return group
+	}
+
 	g := group.Normalized()
 	a := new(big.Int).Set(g.a)
 	b := new(big.Int).Set(g.b)
@@ -89,7 +104,7 @@ func (group *ClassGroup) Reduced() *ClassGroup {
 	for (a.Cmp(c) == 1) || ((a.Cmp(c) == 0) && (b.Sign() == -1)) {
 		//s = (c + b) // (c + c)
 		s := new(big.Int).Add(c, b)
-		s = floorDivision(s, new(big.Int).Add(c, c))
+		s = floorDivision(s, new(big.Int).Lsh(new(big.Int).Set(c), 1))
 
 		//a, b, c = c, -b + 2 * s * c, c * s * s - b * s + a
 		oldA := new(big.Int).Set(a)
@@ -97,8 +112,8 @@ func (group *ClassGroup) Reduced() *ClassGroup {
 		a = new(big.Int).Set(c)
 
 		b.Neg(b)
-		x := new(big.Int).Mul(big.NewInt(2), s)
-		x.Mul(x, c)
+		x := new(big.Int).Mul(s, c)
+		x.Lsh(x, 1)
 		b.Add(b, x)
 
 		c.Mul(c, s)
@@ -112,7 +127,29 @@ func (group *ClassGroup) Reduced() *ClassGroup {
 }
 
 func (group *ClassGroup) identity() *ClassGroup {
-	return NewClassGroupFromAbDiscriminant(big.NewInt(1), big.NewInt(1), group.Discriminant())
+	return IdentityForDiscriminant(group.Discriminant())
+}
+
+func (group *ClassGroup) isIdentityReduced() bool {
+	return group.a.Cmp(bigOne) == 0 && group.b.Cmp(bigOne) == 0
+}
+
+func (group *ClassGroup) isNormalized() bool {
+	if group.b.Cmp(group.a) > 0 {
+		return false
+	}
+	if group.b.Sign() >= 0 {
+		return true
+	}
+	return group.b.CmpAbs(group.a) < 0
+}
+
+func (group *ClassGroup) isReduced() bool {
+	if !group.isNormalized() {
+		return false
+	}
+	cmp := group.a.Cmp(group.c)
+	return cmp < 0 || (cmp == 0 && group.b.Sign() >= 0)
 }
 
 func (group *ClassGroup) Discriminant() *big.Int {
@@ -121,7 +158,7 @@ func (group *ClassGroup) Discriminant() *big.Int {
 		d.Mul(d, d)
 		a := new(big.Int).Set(group.a)
 		a.Mul(a, group.c)
-		a.Mul(a, big.NewInt(4))
+		a.Mul(a, bigFourValue)
 		d.Sub(d, a)
 
 		group.d = d
@@ -129,39 +166,40 @@ func (group *ClassGroup) Discriminant() *big.Int {
 	return group.d
 }
 
-func (group *ClassGroup) Multiply(other *ClassGroup) *ClassGroup {
-	//a1, b1, c1 = self.reduced()
-	x := group.Reduced()
-
-	//a2, b2, c2 = other.reduced()
-	y := other.Reduced()
+func (group *ClassGroup) multiplyReduced(other *ClassGroup) *ClassGroup {
+	if group.isIdentityReduced() {
+		return other
+	}
+	if other.isIdentityReduced() {
+		return group
+	}
 
 	//g = (b2 + b1) // 2
-	g := new(big.Int).Add(x.b, y.b)
-	g = floorDivision(g, big.NewInt(2))
+	g := new(big.Int).Add(group.b, other.b)
+	g = floorDivision(g, bigTwoValue)
 
 	//h = (b2 - b1) // 2
-	h := new(big.Int).Sub(y.b, x.b)
-	h = floorDivision(h, big.NewInt(2))
+	h := new(big.Int).Sub(other.b, group.b)
+	h = floorDivision(h, bigTwoValue)
 
 	//w = mod.gcd(a1, a2, g)
-	w1 := allInputValueGCD(y.a, g)
-	w := allInputValueGCD(x.a, w1)
+	w1 := allInputValueGCD(other.a, g)
+	w := allInputValueGCD(group.a, w1)
 
 	//j = w
 	j := new(big.Int).Set(w)
 	//r = 0
 	r := big.NewInt(0)
 	//s = a1 // w
-	s := floorDivision(x.a, w)
+	s := floorDivision(group.a, w)
 	//t = a2 // w
-	t := floorDivision(y.a, w)
+	t := floorDivision(other.a, w)
 	//u = g // w
 	u := floorDivision(g, w)
 
 	//k_temp, constant_factor = mod.solve_mod(t * u, h * u + s * c1, s * t)
 	b := new(big.Int).Mul(h, u)
-	sc := new(big.Int).Mul(s, x.c)
+	sc := new(big.Int).Mul(s, group.c)
 	b.Add(b, sc)
 	k_temp, constant_factor, solvable := SolveMod(new(big.Int).Mul(t, u), b, new(big.Int).Mul(s, t))
 	if !solvable {
@@ -215,13 +253,27 @@ func (group *ClassGroup) Multiply(other *ClassGroup) *ClassGroup {
 	return NewClassGroup(a3, b3, c3).Reduced()
 }
 
-func (group *ClassGroup) Pow(n int64) *ClassGroup {
-	x := CloneClassGroup(group)
+func (group *ClassGroup) Multiply(other *ClassGroup) *ClassGroup {
+	return group.Reduced().multiplyReduced(other.Reduced())
+}
+
+func (group *ClassGroup) powReduced(n int64) *ClassGroup {
+	if n == 0 {
+		return group.identity()
+	}
+	if n == 1 {
+		return group
+	}
+	if n == 2 {
+		return group.Square()
+	}
+
+	x := group
 	items_prod := group.identity()
 
 	for n > 0 {
 		if n&1 == 1 {
-			items_prod = items_prod.Multiply(x)
+			items_prod = items_prod.multiplyReduced(x)
 			if items_prod == nil {
 				return nil
 			}
@@ -235,14 +287,27 @@ func (group *ClassGroup) Pow(n int64) *ClassGroup {
 	return items_prod
 }
 
-func (group *ClassGroup) BigPow(n *big.Int) *ClassGroup {
-	x := CloneClassGroup(group)
+func (group *ClassGroup) Pow(n int64) *ClassGroup {
+	return group.Reduced().powReduced(n)
+}
+
+func (group *ClassGroup) bigPowReduced(n *big.Int) *ClassGroup {
+	switch n.Sign() {
+	case 0:
+		return group.identity()
+	case 1:
+		if n.Cmp(bigOne) == 0 {
+			return group
+		}
+	}
+
+	x := group
 	items_prod := group.identity()
 
 	p := new(big.Int).Set(n)
 	for p.Sign() > 0 {
 		if p.Bit(0) == 1 {
-			items_prod = items_prod.Multiply(x)
+			items_prod = items_prod.multiplyReduced(x)
 			if items_prod == nil {
 				return nil
 			}
@@ -256,6 +321,10 @@ func (group *ClassGroup) BigPow(n *big.Int) *ClassGroup {
 	return items_prod
 }
 
+func (group *ClassGroup) BigPow(n *big.Int) *ClassGroup {
+	return group.Reduced().bigPowReduced(n)
+}
+
 func (group *ClassGroup) Square() *ClassGroup {
 	u, _, solvable := SolveMod(group.b, group.c, group.a)
 	if !solvable {
@@ -267,14 +336,15 @@ func (group *ClassGroup) Square() *ClassGroup {
 
 	//B = b − 2aµ,
 	au := new(big.Int).Mul(group.a, u)
-	B := new(big.Int).Sub(group.b, new(big.Int).Mul(au, big.NewInt(2)))
+	au.Lsh(au, 1)
+	B := new(big.Int).Sub(group.b, au)
 
 	//C = µ ^ 2 - (bµ−c)//a
 	C := new(big.Int).Mul(u, u)
 	m := new(big.Int).Mul(group.b, u)
-	m = new(big.Int).Sub(m, group.c)
+	m.Sub(m, group.c)
 	m = floorDivision(m, group.a)
-	C = new(big.Int).Sub(C, m)
+	C.Sub(C, m)
 
 	return NewClassGroup(A, B, C).Reduced()
 }
@@ -367,8 +437,8 @@ func (group *ClassGroup) Serialize() []byte {
 	int_size := (int_size_bits + 16) >> 4
 
 	buf := make([]byte, int_size*2)
-	copy(buf[:int_size], signBitFill(encodeTwosComplement(r.a), int_size))
-	copy(buf[int_size:], signBitFill(encodeTwosComplement(r.b), int_size))
+	fillTwosComplement(buf[:int_size], r.a)
+	fillTwosComplement(buf[int_size:], r.b)
 
 	return buf
 }
@@ -378,4 +448,8 @@ func (group *ClassGroup) Equal(other *ClassGroup) bool {
 	o := other.Reduced()
 
 	return (g.a.Cmp(o.a) == 0 && g.b.Cmp(o.b) == 0 && g.c.Cmp(o.c) == 0)
+}
+
+func (group *ClassGroup) equalReduced(other *ClassGroup) bool {
+	return group.a.Cmp(other.a) == 0 && group.b.Cmp(other.b) == 0 && group.c.Cmp(other.c) == 0
 }
